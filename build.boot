@@ -2,7 +2,6 @@
  :source-paths #{"src/clj"}
  :dependencies '[[webica "3.0.0-beta2-clj0"]])
 
-
 (require 'boot.repl)
 
 (swap! boot.repl/*default-dependencies*
@@ -18,6 +17,4 @@
    (watch)
    (repl :server true)
    (target :dir #{"target"})))
-
-
 

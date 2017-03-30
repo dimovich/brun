@@ -9,26 +9,63 @@
             [webica.remote-web-driver :as browser]))
 
 
-(defn lmgtfy [search]
-  (browser/get "http://www.google.com")
-  (let [q (browser/find-element (by/name "q"))]
-    (element/send-keys q search)
-    (element/submit q)
-    (wait/until (wait/instance 10)
-      (wait/condition
-        (fn [driver]
-          (string/starts-with?
-            (string/lower-case (driver/get-title driver))
-            (string/lower-case search)))))
-    (println "Was that so hard?")
-    (w/sleep 10)))
+(def config (atom {:main-url "https://www.behance.net/"
+                   :login-title "Sign in - Adobe ID"
+                   :main-title "Online Portfolios on Behance"
+                   :user ""
+                   :pass ""}))
+
+
+(defn wait-for-title [title]
+  (wait/until
+   (wait/instance 10)
+   (wait/condition
+    (fn [driver]
+      (string/starts-with?
+       (string/lower-case (driver/get-title driver))
+       (string/lower-case title)))))
+  (w/sleep 5))
+
+
+(defn slowly-type [el text]
+  (doseq [ch text]
+    (element/send-keys el (str ch))
+    (w/sleep (inc (rand-int 2)))))
+
+(defn login [config]
+  (browser/get (:main-url config))
+  (wait-for-title (:main-title config))
+  
+  (let [ham (browser/find-element-by-id "hamburger-button")
+        logins (browser/find-elements-by-class-name "js-adobeid-signin")]
+    
+    ;; make sure at least one login is visible
+    (when (element/is-displayed? ham)
+      (element/click ham))
+
+    (w/sleep 5)
+    
+    ;; click on login
+    (element/click
+     (->> logins
+          (filter #(boolean (element/is-displayed? %)))
+          first))
+
+
+    (wait-for-title (:login-title config))
+    
+    ;; enter credentials
+    (let [user (browser/find-element-by-name "username")
+          pass (browser/find-element-by-name "password")
+          sign-in (browser/find-element-by-id "sign_in")]
+      (slowly-type user (:user config))
+      (slowly-type pass (:pass config))
+      (element/click sign-in))))
 
 
 (defn -main
-  "Webica example of 'Let me Google that for you'"
   [& args]
-  (let [search (if (empty? args) "Clojure Conj 2016"
-                   (apply str (interpose " " args)))]
-    (chrome/start-chrome)
-    (lmgtfy search)
-    (browser/quit)))
+  (chrome/start-chrome)
+  (login @config))
+
+
