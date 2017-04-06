@@ -1,5 +1,6 @@
 (ns brun.core
   (:require [clojure.string :as string]
+            [clojure.edn :as edn]
             [webica.core :as w] ;; must always be first
             [webica.by :as by]
             [webica.web-driver :as driver]
@@ -10,22 +11,9 @@
             [webica.remote-web-driver :as browser]))
 
 
-(def config (atom {:main-url "https://www.behance.net/"
-                   :recent-url "https://www.behance.net/search?content=projects&sort=published_date&time=all"
-                   :recent-title "Most recent projects on Behance"
-                   :login-title "Sign in - Adobe ID"
-                   :main-title "Online Portfolios on Behance"
-                   :max-items 30
-                   :user ""
-                   :pass ""}))
+(def config-file "config.txt")
+(def config (atom {}))
 
-
-(defn char-sequence [char-seqable]
-  (let [char-seq (seq char-seqable)]
-    (reify CharSequence
-      (charAt   [this i] (nth char-seq i))
-      (length   [this]   (count char-seq))
-      (toString [this]   (String. (char-array char-seq))))))
 
 ;;
 ;; wait-for-title
@@ -42,7 +30,7 @@
 
 
 (defn random-sleep
-  ([] (random-sleep 5))
+  ([] (random-sleep 1))
   ([n] (w/sleep (rand n))))
 
 
@@ -51,8 +39,8 @@
 ;;
 (defn slowly-type [el text]
   (doseq [ch text]
-    (element/send-keys el (str ch))
-    (w/sleep (rand 1))))
+    (random-sleep)
+    (element/send-keys el (str ch))))
 
 
 ;;
@@ -60,7 +48,7 @@
 ;;
 (defn move-and-click [el]
   (.mouseMove (browser/get-mouse) (.getCoordinates el))
-  (w/sleep (rand 5))
+  (random-sleep)
   (.click el))
 
 
@@ -85,8 +73,6 @@
      (->> logins
           (filter #(boolean (element/is-displayed? %)))
           first))
-
-
     (wait-for-title (:login-title config))
     
     ;; enter credentials
@@ -100,30 +86,69 @@
 
 
 ;;
-;; (.sendKeys keyboard (into-array CharSequence [wkeys/PAGE_DOWN]))
 ;;
-(defn like-random-items [config]
+(defn like-items [config]
+  (browser/get (:recent-url config))
   
-  (loop [covers (browser/find-elements-by-class-name "cover-name-link")
-         total-liked 0]
-    (when (< total-liked (:max-items config))
-      (let [total-covers (count covers)
-            liked (random-sample covers)]
-        ;; like
-        (doseq [item liked]
-          (.click item)
-          ;;wait for it to load
-          ;;appreciate
-          ;;escape
+  (let [keyboard (browser/get-keyboard)]
+    (loop [covers (browser/find-elements-by-class-name "cover-name-link")
+           total-liked 0
+           total-seen 0]
+      (when (< total-liked (:max-items config))
+        (let [covers-sample (random-sample 0.1 covers)
+              cover-links (map #(element/get-attribute % "href") covers-sample)
+              last-cover-coords (.getCoordinates (last covers))]
+          ;; like
+          (doseq [cover cover-links]
+            ;; TODO: add to seen-db
+            (w/sleep 3)
+            (browser/get cover)
+            (w/sleep 3)
+
+            ;; page-down until we reach the like button
+            (let [aprct (- (browser/execute-script
+                            "return document.getElementById('appreciation').getBoundingClientRect().top;" nil)
+                           100)
+                  keyboard (browser/get-keyboard)
+                  mouse (browser/get-mouse)]
+              (while (< (browser/execute-script "return window.scrollY;" nil)
+                        aprct)
+                (random-sleep)
+                (.sendKeys keyboard (into-array CharSequence [wkeys/PAGE_DOWN])))
+              
+              ;; click the appreciation
+              (move-and-click (browser/find-element-by-id "appreciation"))
+              ;
+              (w/sleep 5)
+              (.back (browser/navigate))))
           
-          ))))
+          ;; get new covers
+          (w/sleep 3)
+          ;;(.mouseMove (browser/get-mouse) (.getCoordinates (browser/find-element-by-link-text elt)))
+          (.mouseMove (driver/get-mouse) last-cover-coords)
+          (w/sleep 5)
+
+          ;; get next covers and recur
+          (let [total-liked (+ total-liked (count covers-sample))
+                total-seen (+ total-seen (count covers))]
+            (recur (drop total-seen (browser/find-elements-by-class-name "cover-name-link"))
+                   total-liked
+                   total-seen)))))))
+
+
+  ;;(.mouseMove (browser/get-mouse) (.getCoordinates el))
+  ;; (browser/execute-script "document.getElementById('appreciation').scrollIntoView(true);" nil)
+  ;; document.getElementById('appreciation').scrollIntoView(true);
+  ;; (browser/execute-script "return window.scrollY;" nil)
+;;  (browser/execute-script "return document.getElementById('appreciation').getBoundingClientRect().top;" nil)
+;; (.sendKeys keyboard (into-array CharSequence [wkeys/PAGE_DOWN]))
 
   ;;cover-name-link
   ;;(element/get-text el)
   ;;(element/get-attribute el "href")
   ;;(.back (browser/navigate))
   ;;(element/get-text sticker)
-  )
+
 
 ;; get covers
 ;; like random
@@ -132,8 +157,18 @@
 ;; go to last, wait
 
 
+
 (defn -main
   [& args]
-  (chrome/start-chrome "chromedriver.exe")
+  ;; read config
+  (reset! config (edn/read-string (slurp config-file)))
+  
+  ;; start chrome
+  (if-let [chromepath (:chromepath @config)]
+    (chrome/start-chrome chromepath)
+    (chrome/start-chrome))
+
+  ;; perform login
   (login @config)
-  (browser/get (:recent-url @config)))
+  
+  (like-items @config))
