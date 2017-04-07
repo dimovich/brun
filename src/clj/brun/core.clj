@@ -165,8 +165,8 @@
   (reset! config (edn/read-string (slurp config-file)))
   
   ;; start chrome
-  (chrome/start-chrome "chromedriver.exe")
-  #_(if-let [chromepath (:chromepath @config)]
+  #_(chrome/start-chrome "chromedriver.exe")
+  (if-let [chromepath (:chromepath @config)]
     (chrome/start-chrome chromepath)
     (chrome/start-chrome))
 

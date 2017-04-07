@@ -1,5 +1,6 @@
 (set-env!
  :source-paths #{"src/clj"}
+ :resource-paths #{"resource"}
  :dependencies '[[org.clojure/clojure "1.8.0" :scope "provided"]
                  [webica "3.0.0-beta2-clj0"]])
 
@@ -16,8 +17,7 @@
   []
   (comp
    (watch)
-   (repl;; :server true
-    )
+   (repl :server true)
    (target :dir #{"target"})))
 
 
@@ -28,6 +28,6 @@
    (aot :namespace #{'brun.core})
    (uber)
    (jar :file "brun.jar" :main 'brun.core)
-   (sift :include #{#"brun.jar"})
-   (target)))
+   (sift :include #{#"brun.jar" #"config.txt"})
+   (target :dir #{"target"})))
 
