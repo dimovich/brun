@@ -8,7 +8,8 @@
             [webica.chrome-driver :as chrome]
             [webica.web-element :as element]
             [webica.web-driver-wait :as wait]
-            [webica.remote-web-driver :as browser]))
+            [webica.remote-web-driver :as browser])
+  (:gen-class))
 
 
 (def config-file "config.txt")
@@ -96,7 +97,7 @@
            total-seen 0]
       (when (< total-liked (:max-items config))
         (let [covers-sample (random-sample 0.1 covers)
-              cover-links (map #(element/get-attribute % "href") covers-sample)
+              cover-links (doall (map #(element/get-attribute % "href") covers-sample))
               last-cover-coords (.getCoordinates (last covers))]
           ;; like
           (doseq [cover cover-links]
@@ -125,7 +126,7 @@
           ;; get new covers
           (w/sleep 3)
           ;;(.mouseMove (browser/get-mouse) (.getCoordinates (browser/find-element-by-link-text elt)))
-          (.mouseMove (driver/get-mouse) last-cover-coords)
+          (.mouseMove (browser/get-mouse) last-cover-coords)
           (w/sleep 5)
 
           ;; get next covers and recur
@@ -164,7 +165,8 @@
   (reset! config (edn/read-string (slurp config-file)))
   
   ;; start chrome
-  (if-let [chromepath (:chromepath @config)]
+  (chrome/start-chrome "chromedriver.exe")
+  #_(if-let [chromepath (:chromepath @config)]
     (chrome/start-chrome chromepath)
     (chrome/start-chrome))
 
