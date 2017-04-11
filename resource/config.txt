@@ -1,4 +1,4 @@
-{:user "cripplex@gmail.com"
+{:user ""
  :pass "Let.The.Party.Begin"
  :max-items 30
  :main-url "https://www.behance.net/"
