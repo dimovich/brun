@@ -115,7 +115,8 @@
 ;;
 (defn like-items [config]
   (browser/get (:recent-url config))
-  (wait-for-title (:recent-title config))
+  ;;(wait-for-title (:recent-title config))
+  (wait-for-class "cover-name-link")
   (w/sleep 5)
   
   (let [keyboard (browser/get-keyboard)
