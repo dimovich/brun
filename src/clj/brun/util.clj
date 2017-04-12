@@ -2,9 +2,11 @@
   (:require [clojure.string :as string]
             [webica.core :as w] ;; must always be first
             [webica.web-driver-wait :as wait]
+            [webica.web-driver :as driver]
             [webica.remote-web-driver :as browser]
             [webica.chrome-driver :as chrome]
-            [webica.web-element :as element]))
+            [webica.web-element :as element]
+            [webica.keys :as wkeys]))
 
 
 (defn startup
@@ -19,15 +21,28 @@
 (defn navigate [url]
   (browser/get url))
 
+(defn navigate-back []
+  (.back (browser/navigate)))
+
 
 (defn by-id [id]
   (browser/find-element-by-id id))
 
 (defn by-class [cls]
+  (browser/find-element-by-class-name cls))
+
+(defn by-id-all [id]
+  (browser/find-elements-by-id id))
+
+(defn by-class-all [cls]
   (browser/find-elements-by-class-name cls))
+
 
 (defn by-name [s]
   (browser/find-element-by-name s))
+
+(defn by-link-text [s]
+  (browser/find-element-by-link-text s))
 
 (defn visible? [el]
   (boolean (element/is-displayed? el)))
@@ -46,17 +61,16 @@
   ([s arg] (browser/execute-script s arg)))
 
 
-(def keyboard (let [keyboard (atom nil)]
-                (fn []
-                  (if (@keyboard)
-                    keyboard
-                    (try
-                      (let [k (browser/get-keyboard)]
-                        (reset! keyboard k)
-                        (catch java.lang.RuntimeException e "couldn't get keyboard")))))))
+(def keyboard (atom nil))
 
 (defn press-keys [ks]
-  (.sendKeys (keyboard) (into-array CharSequence )))
+  (when-let [k (if @keyboard
+                 @keyboard
+                 (try
+                   (reset! keyboard (browser/get-keyboard))
+                   (catch java.lang.RuntimeException e nil)))]
+    (.sendKeys k (into-array CharSequence ks))))
+
 
 ;;
 ;; wait-for-title
@@ -113,3 +127,8 @@
 ;;  (browser/execute-script "document.getElementById('appreciation').scrollIntoView(true);" nil)
   (random-sleep)
   (.click el))
+
+
+(defn move-to [el]
+  (.mouseMove (browser/get-mouse) (.getCoordinates el)))
+

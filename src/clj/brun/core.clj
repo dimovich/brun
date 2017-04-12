@@ -2,12 +2,13 @@
   (:require [clojure.edn :as edn]
             [webica.core :as w] ;; must always be first
             [webica.by :as by]
-            [webica.web-driver :as driver]
             [webica.keys :as wkeys]
             [webica.chrome-driver :as chrome]
             [webica.web-element :as element]
             [webica.remote-web-driver :as browser]
-            [brun.actions :refer action])
+            #_[brun.actions :refer [action
+                                    random-action]]
+            [brun.util :refer :all])
   (:gen-class))
 
 
@@ -25,7 +26,7 @@
   (wait-for-class "js-adobeid-signin")
   
   (let [ham (by-id "hamburger-button")
-        logins (by-class "js-adobeid-signin")]
+        logins (by-class-all "js-adobeid-signin")]
     
     ;; make sure at least one login is visible
     (when (visible? ham)
@@ -62,7 +63,7 @@
   
   (let [keyboard (browser/get-keyboard)
         mouse (browser/get-mouse)]
-    (loop [covers (by-class "cover-name-link")
+    (loop [covers (by-class-all "cover-name-link")
            total-liked 0
            total-seen 0]
       (when (< total-liked (:max-items config))
@@ -87,26 +88,23 @@
                 (press-keys [wkeys/PAGE_DOWN]))
               
               ;; click the appreciation
-              (move-and-click (browser/find-element-by-id "appreciation"))
+              (move-and-click (by-id "appreciation"))
               
-              (w/sleep 5)
-              (.back (browser/navigate))))
+              (wait 5)
+              
+              (navigate-back)))
 
           ;; get new covers
-          (w/sleep 3)
-          (.mouseMove
-           (browser/get-mouse)
-           (.getCoordinates
-            (browser/find-element-by-link-text
-             last-item-text)))
+          (wait 3)
+          (move-to (by-link-text last-item-text))
           
           
-          (w/sleep 5)
+          (wait 5)
 
           ;; get next covers and recur
           (let [total-liked (+ total-liked (count sample))
                 total-seen (+ total-seen (count covers))]
-            (recur (drop total-seen (browser/find-elements-by-class-name "cover-name-link"))
+            (recur (drop total-seen (by-class-all "cover-name-link"))
                    total-liked
                    total-seen)))))))
 
@@ -116,8 +114,7 @@
 (defn -main
   [& args]
   ;; read config
-  (reset! config (edn/read-string (slurp config-file ;;:encoding "Unicode"
-                                         )))
+  (reset! config (edn/read-string (slurp config-file)))
   
   ;; start chrome
   (if-let [chromepath (:chromepath @config)]
