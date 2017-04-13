@@ -9,9 +9,28 @@
             [webica.keys :as wkeys]))
 
 
+(defonce state (atom {}))
+
+
+;; (.perform (.moveToElement a (by-id "login-link"))) (you can chain actions together)
+;;
+;; (def a (org.openqa.selenium.interactions.Actions. (driver/get-instance)))
+
+
+(defn runjs
+  ([s] (runjs s nil))
+  ([s arg] (browser/execute-script s arg)))
+
 (defn startup
-  ([] (chrome/start-chrome))
-  ([path] (chrome/start-chrome path)))
+  ([]
+   (startup nil))
+  ([path]
+   (chrome/start-chrome path)
+   (reset! state {:keyboard (browser/get-keyboard)
+                  :mouse (browser/get-mouse)
+                  :actions (org.openqa.selenium.interactions.Actions. (driver/get-instance))
+                  :width (runjs "return window.innerWidth;")
+                  :height (runjs "return window.innerHeight;")})))
 
 
 (defn cleanup []
@@ -56,20 +75,11 @@
 (defn get-text [el]
   (element/get-text el))
 
-(defn runjs
-  ([s] (runjs s nil))
-  ([s arg] (browser/execute-script s arg)))
 
 
-(def keyboard (atom nil))
 
 (defn press-keys [ks]
-  (when-let [k (if @keyboard
-                 @keyboard
-                 (try
-                   (reset! keyboard (browser/get-keyboard))
-                   (catch java.lang.RuntimeException e nil)))]
-    (.sendKeys k (into-array CharSequence ks))))
+  (.sendKeys (:keyboard @state) (into-array CharSequence ks)))
 
 
 ;;
@@ -120,15 +130,19 @@
 
 
 ;;
+;; move-to
+;;
+(defn move-to [el]
+  (.perform (.moveToElement (:actions @state) el)))
+
+
+;;
 ;; move-and-click
 ;;
 (defn move-and-click [el]
-  (.mouseMove (browser/get-mouse) (.getCoordinates el))
-;;  (browser/execute-script "document.getElementById('appreciation').scrollIntoView(true);" nil)
+  (move-to el)
   (random-sleep)
   (.click el))
 
 
-(defn move-to [el]
-  (.mouseMove (browser/get-mouse) (.getCoordinates el)))
-
+(defn move-random [])

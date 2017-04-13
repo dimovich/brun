@@ -61,52 +61,50 @@
   (wait-for-class "cover-name-link")
   (wait 5)
   
-  (let [keyboard (browser/get-keyboard)
-        mouse (browser/get-mouse)]
-    (loop [covers (by-class-all "cover-name-link")
-           total-liked 0
-           total-seen 0]
-      (when (< total-liked (:max-items config))
-        (let [sample (random-sample 0.1 covers)
-              sample-hrefs (doall (map #(get-attr % "href") sample))
-              last-item-text (get-text (last covers))]
-          ;;
-          ;; like
-          ;;
-          (doseq [href sample-hrefs]
-            ;; TODO: add to seen-db
-            (wait 7)
-            (navigate href)
-            (wait 5)
-
-            ;; page-down until we reach the like button
-            (let [aprct (- (runjs "return document.getElementById('appreciation').getBoundingClientRect().top;")
-                           200)]
-              (while (< (runjs "return window.scrollY;")
-                        aprct)
-                (random-sleep)
-                (press-keys [wkeys/PAGE_DOWN]))
-              
-              ;; click the appreciation
-              (move-and-click (by-id "appreciation"))
-              
-              (wait 5)
-              
-              (navigate-back)))
-
-          ;; get new covers
-          (wait 3)
-          (move-to (by-link-text last-item-text))
-          
-          
+  (loop [covers (by-class-all "cover-name-link")
+         total-liked 0
+         total-seen 0]
+    (when (< total-liked (:max-items config))
+      (let [sample (random-sample 0.1 covers)
+            sample-hrefs (doall (map #(get-attr % "href") sample))
+            last-item-text (get-text (last covers))]
+        ;;
+        ;; like
+        ;;
+        (doseq [href sample-hrefs]
+          ;; TODO: add to seen-db
+          (wait 7)
+          (navigate href)
           (wait 5)
 
-          ;; get next covers and recur
-          (let [total-liked (+ total-liked (count sample))
-                total-seen (+ total-seen (count covers))]
-            (recur (drop total-seen (by-class-all "cover-name-link"))
-                   total-liked
-                   total-seen)))))))
+          ;; page-down until we reach the like button
+          (let [aprct (- (runjs "return document.getElementById('appreciation').getBoundingClientRect().top;")
+                         200)]
+            (while (< (runjs "return window.scrollY;")
+                      aprct)
+              (random-sleep)
+              (press-keys [wkeys/PAGE_DOWN]))
+            
+            ;; click the appreciation
+            (move-and-click (by-id "appreciation"))
+            
+            (wait 5)
+            
+            (navigate-back)))
+
+        ;; get new covers
+        (wait 3)
+        (move-to (by-link-text last-item-text))
+        
+        
+        (wait 5)
+
+        ;; get next covers and recur
+        (let [total-liked (+ total-liked (count sample))
+              total-seen (+ total-seen (count covers))]
+          (recur (drop total-seen (by-class-all "cover-name-link"))
+                 total-liked
+                 total-seen))))))
 
 
 
