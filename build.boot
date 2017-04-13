@@ -2,7 +2,8 @@
  :source-paths #{"src/clj"}
  :resource-paths #{"resource"}
  :dependencies '[[org.clojure/clojure "1.8.0" :scope "provided"]
-                 [webica "3.0.0-beta2-clj0"]])
+                 [webica "3.0.0-beta2-clj0"]
+                 [com.taoensso/timbre "4.8.0"]])
 
 ;;(require 'boot.repl)
 

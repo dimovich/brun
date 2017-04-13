@@ -6,11 +6,14 @@
             [webica.remote-web-driver :as browser]
             [webica.chrome-driver :as chrome]
             [webica.web-element :as element]
-            [webica.keys :as wkeys]))
+            [webica.keys :as wkeys]
+            [taoensso.timbre :as timbre :refer [info get-env]]))
 
 
 (defonce state (atom {}))
+(defonce wait-range [1 10])
 
+(timbre/set-level! :info)
 
 ;; (.perform (.moveToElement a (by-id "login-link"))) (you can chain actions together)
 ;;
@@ -114,19 +117,20 @@
            (catch java.lang.reflect.InvocationTargetException e false)
            (finally true))))))
 
-
-(defn random-sleep
-  ([] (random-sleep 1))
-  ([n] (w/sleep (rand n))))
-
-
 ;;
 ;; slowly-type
 ;;
 (defn slowly-type [el text]
   (doseq [ch text]
-    (random-sleep)
+    (wait (rand))
     (element/send-keys el (str ch))))
+
+
+(defn random-sleep
+  ([] (random-sleep wait-range))
+  ([[t1 t2]]
+   (info "random-sleep " (get-env))
+   (wait (+ t1 (inc (rand-int (- t2 t1)))))))
 
 
 ;;
@@ -147,14 +151,52 @@
 
 (defn move-random [])
 
+(defn get-y [el]
+  (.y (element/get-location el)))
+
+(defn get-x [el]
+  (.x (element/get-location el)))
+
+
+
+(defn page-down []
+  (info "page-down")
+  (press-keys [wkeys/PAGE_DOWN]))
+
+
+(defn page-up []
+  (info "page-up")
+  (press-keys [wkeys/PAGE_UP]))
+
+
+(defn arrow-down []
+  (info "arrow-down")  
+  (press-keys [wkeys/ARROW_DOWN]))
+
+
+(defn arrow-up []
+  (info "arrow-up")  
+  (press-keys [wkeys/ARROW_UP]))
+
+
+
 (defn get-to [el]
+  (info "get-to " (get-env))
   (let [height (/ (:height @state) 2)
-        yf (.y (element/get-location el))]
-    (loop [yc (runjs "return window.scrollY;")]
-      (when (< (+ yc height) yf)
+        yf (get-y el)
+        yc (runjs "return window.scrollY;")
+        [actions sign] (if (< yf yc)
+                           [[page-up page-up arrow-up arrow-down] >]
+                           [[page-down page-down arrow-down arrow-up] <])]
+    (loop [yc yc]
+      (when (sign (+ yc height) yf)
         (do
-          (action (rand-nth [:page-down :arrow-down :arrow-up]))
-          (action :random-sleep))))))
+          ((rand-nth actions))
+          (random-sleep)
+          (recur (runjs "return window.scrollY;")))))))
+
+
+
 
 
 ;; (runjs "return document.getElementById('appreciation').getBoundingClientRect().top;")

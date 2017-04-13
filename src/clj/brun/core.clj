@@ -1,6 +1,5 @@
 (ns brun.core
   (:require [clojure.edn :as edn]
-            [brun.actions :refer [action]]
             [brun.util :refer :all])
   (:gen-class))
 
@@ -20,12 +19,12 @@
     
     ;; make sure at least one login is visible
     (when (visible? ham)
-      (move-and-click ham))
+      (move-mouse-and-click ham))
 
     (wait 5)
     
     ;; click on login
-    (move-and-click
+    (move-mouse-and-click
      (->> logins
           (filter #(visible? %))
           first))
@@ -49,7 +48,8 @@
   (navigate (:recent-url config))
   ;;(wait-for-title (:recent-title config))
   (wait-for-class "cover-name-link")
-  (wait 5)
+
+  (random-sleep)
   
   (loop [covers (by-class-all "cover-name-link")
          total-liked 0
@@ -59,35 +59,23 @@
             sample-hrefs (doall (map #(get-attr % "href") sample))
             last-item-text (get-text (last covers))]
         ;;
-        ;; like
+        ;; like items
         ;;
         (doseq [href sample-hrefs]
-          ;; TODO: add to seen-db
-          (wait 7)
           (navigate href)
-          (wait 5)
-
-          ;; page-down until we reach the like button
-          (let [aprct (- (runjs "return document.getElementById('appreciation').getBoundingClientRect().top;")
-                         200)]
-            (while (< (runjs "return window.scrollY;")
-                      aprct)
-              (random-sleep)
-              (action :page-down config))
-            
-            ;; click the appreciation
-            (move-and-click (by-id "appreciation"))
-            
-            (wait 5)
-            
-            (navigate-back)))
+          (wait-for-id "appreciation")
+          (let [el (by-id "appreciation")]
+            (get-to el)
+            (move-mouse-and-click el))
+          (random-sleep)
+          (navigate-back))
 
         ;; get new covers
-        (wait 3)
-        (move-to (by-link-text last-item-text))
+        (wait-for-class "cover-name-link")
+        (get-to (by-link-text last-item-text))
         
         
-        (wait 5)
+        (random-sleep [3 5])
 
         ;; get next covers and recur
         (let [total-liked (+ total-liked (count sample))
