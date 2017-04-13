@@ -7,7 +7,7 @@
             [webica.chrome-driver :as chrome]
             [webica.web-element :as element]
             [webica.keys :as wkeys]
-            [taoensso.timbre :as timbre :refer [info get-env]]))
+            [taoensso.timbre :as timbre :refer [info]]))
 
 
 (defonce state (atom {}))
@@ -24,16 +24,25 @@
   ([s] (runjs s nil))
   ([s arg] (browser/execute-script s arg)))
 
+
 (defn startup
   ([]
    (startup nil))
   ([path]
    (chrome/start-chrome path)
+
+   ;; resize for no popups
+   (-> (driver/manage)
+               .window
+               (.setSize (org.openqa.selenium.Dimension. 800 600)))
+   
+   ;; init vars
    (reset! state {:keyboard (browser/get-keyboard)
                   :mouse (browser/get-mouse)
                   :actions (org.openqa.selenium.interactions.Actions. (driver/get-instance))
                   :width (runjs "return window.innerWidth;")
                   :height (runjs "return window.innerHeight;")})))
+
 
 
 (defn cleanup []
@@ -79,8 +88,6 @@
   (element/get-text el))
 
 
-
-
 (defn press-keys [ks]
   (.sendKeys (:keyboard @state) (into-array CharSequence ks)))
 
@@ -104,8 +111,7 @@
    (wait/condition
     (fn [driver]
       (try (browser/find-element-by-id id)
-           (catch java.lang.reflect.InvocationTargetException e false)
-           (finally true))))))
+           (catch java.lang.reflect.InvocationTargetException e false))))))
 
 
 (defn wait-for-class [cls]
@@ -179,11 +185,18 @@
   (press-keys [wkeys/ARROW_UP]))
 
 
+(defn f5 []
+  (info "f5")
+  (press-keys [wkeys/F5]))
 
+
+;;
+;; randomly get to element
+;;
 (defn get-to [el]
-  (info "get-to " (get-env))
-  (let [height (/ (:height @state) 2)
-        yf (get-y el)
+  (info "get-to " (get-text el))
+  (let [height (/ (:height @state) 2)  ;; stop when element is around middle of screen
+        yf (get-y el) ;; final y
         yc (runjs "return window.scrollY;")
         [actions sign] (if (< yf yc)
                            [[page-up page-up arrow-up arrow-down] >]
