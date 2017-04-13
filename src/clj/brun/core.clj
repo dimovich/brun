@@ -1,19 +1,11 @@
 (ns brun.core
   (:require [clojure.edn :as edn]
-            [webica.core :as w] ;; must always be first
-            [webica.by :as by]
-            [webica.keys :as wkeys]
-            [webica.chrome-driver :as chrome]
-            [webica.web-element :as element]
-            [webica.remote-web-driver :as browser]
-            #_[brun.actions :refer [action
-                                    random-action]]
+            [brun.actions :refer [action]]
             [brun.util :refer :all])
   (:gen-class))
 
 
 (def config-file "config.txt")
-(def config (atom {}))
 
 
 ;;
@@ -21,8 +13,6 @@
 ;;
 (defn login [config]
   (navigate (:main-url config))
-  ;;(wait-for-title (:main-title config))
-
   (wait-for-class "js-adobeid-signin")
   
   (let [ham (by-id "hamburger-button")
@@ -83,7 +73,7 @@
             (while (< (runjs "return window.scrollY;")
                       aprct)
               (random-sleep)
-              (press-keys [wkeys/PAGE_DOWN]))
+              (action :page-down config))
             
             ;; click the appreciation
             (move-and-click (by-id "appreciation"))
@@ -109,28 +99,14 @@
 
 
 
-(defn -main
-  [& args]
-  ;; read config
-  (reset! config (edn/read-string (slurp config-file)))
-  
-  ;; start chrome
-  (if-let [chromepath (:chromepath @config)]
+(defn -main [& args]
+  (let [config (edn/read-string (slurp config-file))]
     (startup chromepath)
-    (startup))
-
-  ;; perform login
-  (login @config)
-  
-  (like-items @config)
-
-  (cleanup))
+    (login config)
+    (like-items config)
+    (cleanup)))
 
 
-
-
-;; TODO
 ;;
-;; scrollitemintoview before clicking (use link-text), so the browser returns back correctly
+;; LOGGING
 ;;
-;; use PAGEDOWN maybe?

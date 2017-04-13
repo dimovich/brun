@@ -132,17 +132,29 @@
 ;;
 ;; move-to
 ;;
-(defn move-to [el]
+(defn move-mouse-to [el]
   (.perform (.moveToElement (:actions @state) el)))
 
 
 ;;
 ;; move-and-click
 ;;
-(defn move-and-click [el]
-  (move-to el)
+(defn move-mouse-and-click [el]
+  (move-mouse-to el)
   (random-sleep)
   (.click el))
 
 
 (defn move-random [])
+
+(defn get-to [el]
+  (let [height (/ (:height @state) 2)
+        yf (.y (element/get-location el))]
+    (loop [yc (runjs "return window.scrollY;")]
+      (when (< (+ yc height) yf)
+        (do
+          (action (rand-nth [:page-down :arrow-down :arrow-up]))
+          (action :random-sleep))))))
+
+
+;; (runjs "return document.getElementById('appreciation').getBoundingClientRect().top;")

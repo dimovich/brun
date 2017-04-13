@@ -1,6 +1,7 @@
-{:user ""
+{:user "cripplex@gmail.com"
  :pass "Let.The.Party.Begin"
  :max-items 30
  :main-url "https://www.behance.net/"
  :recent-url "https://www.behance.net/search?content=projects&sort=published_date&time=all"
- :chromepath "chromedriver.exe"}
+ ;;:chromepath "chromedriver.exe"
+ }
