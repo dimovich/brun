@@ -3,5 +3,7 @@
  :max-items 30
  :main-url "https://www.behance.net/"
  :recent-url "https://www.behance.net/search?content=projects&sort=published_date&time=all"
+ :size [740 470]
+ :wait [1 5]
  ;;:chromepath "chromedriver.exe"
  }
