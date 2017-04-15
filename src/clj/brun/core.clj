@@ -8,11 +8,11 @@
 (def config-file "config.txt")
 
 (timbre/set-config!
- {:level :debug
+ {:level :info
   :output-fn (fn [{:keys [timestamp_ level msg_]}]
                (str
-                (force timestamp_) " "
-                (clojure.string/upper-case (name level)) " "
+                (second (clojure.string/split (force timestamp_) #" ")) " "
+                ;;(clojure.string/upper-case (name level)) " "
                 (force msg_)))
   :appenders {:println (timbre/println-appender {:stream :auto})}})
 
@@ -75,10 +75,10 @@
 
 
 (defn like-items [config]
-  (info "liking items...")
-  (navigate (:recent-url config))
+  (navigate (:like-url config))
   (wait-for-class "cover-name-link")
 
+  (info "liking items...")
   (loop [total-liked 0]
     (when (< total-liked (:max-likes config))
       (when (coin)
@@ -103,6 +103,7 @@
     (info "starting up with config: \n" config)
     (startup config)
     (login config)
+    (random-sleep)
     (like-items config)
     (cleanup)))
 
