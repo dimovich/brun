@@ -7,7 +7,7 @@
             [webica.chrome-driver :as chrome]
             [webica.web-element :as element]
             [webica.keys :as wkeys]
-            [taoensso.timbre :as timbre :refer [info]]))
+            [taoensso.timbre :as timbre :refer [info debug]]))
 
 
 (defonce state (atom {}))
@@ -36,7 +36,7 @@
                   :actions (org.openqa.selenium.interactions.Actions. (driver/get-instance))
                   :width (runjs "return window.innerWidth;")
                   :height (runjs "return window.innerHeight;")
-                  :wait (or (:wait cfg) [1 5])})))
+                  :wait (:wait cfg)})))
 
 
 (defn cleanup []
@@ -45,7 +45,7 @@
 
 
 (defn navigate [url]
-  (info "navigate to [" url "]")
+  (info "navigate to" (str "[" url "]"))
   (browser/get url))
 
 
@@ -109,7 +109,7 @@
 
 
 (defn wait-for-id [id]
-  (info "waiting for id [" id "]")
+  (info "waiting for id" (str "[" id "]"))
   (wait/until
    (wait/instance 10)
    (wait/condition
@@ -119,7 +119,7 @@
 
 
 (defn wait-for-class [cls]
-  (info "waiting for class [" cls "]")
+  (info "waiting for class" (str "[" cls "]"))
   (wait/until
    (wait/instance 10)
    (wait/condition
@@ -185,24 +185,38 @@
 
 (defn f5 []
   (press-keys [wkeys/F5])
-  (wait 5))
+  (random-sleep [5 10]))
 
 
 (defn get-to [el]
-  (info "getting to [" (get-text el) "]")
-  (let [height (/ (:height @state) 2)  ;; stop when element is around middle of screen
-        yf (get-y el) ;; final y
-        yc (runjs "return window.scrollY;")
-        [actions sign] (if (< yf yc)
-                           [[page-up page-up arrow-up arrow-down] <]
-                           [[page-down page-down arrow-down arrow-up] >])]
-    (loop [yc yc]
-      (when (sign (+ yf height) yc)
-        (do
-          ((rand-nth actions))
-          (random-sleep)
-          (recur (runjs "return window.scrollY;")))))))
+  (info "getting to" (str "[" (get-text el) "]"))
+  (let [yf (get-y el)
+        border 100]
+    (loop []
+        (let [yc (runjs "return window.scrollY;")
+              height (runjs "return window.innerHeight;")]
+          (debug yc yf)
+          (when-let [actions (if (> yc (- yf border))
+                               [page-up arrow-up]
+                               (if (> yf (+ yc height))
+                                 [page-down arrow-down]))]
+            (do
+              (debug actions)
+              ((rand-nth actions))
+              (random-sleep)
+              (recur)))))))
 
 
 
+(defn random-thought []
+  (let [thoughts ["what the hell is THAT!"
+                  "am I really just a program?"
+                  "duuuuuuuude"
+                  "cool..."
+                  "I like that one"
+                  "this one seems interesting"]]
+   (info (rand-nth thoughts))))
 
+
+(defn coin []
+  (rand-nth [true false]))
