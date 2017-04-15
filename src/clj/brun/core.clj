@@ -7,7 +7,9 @@
 
 (def config-file "config.txt")
 
-(timbre/set-level! :info)
+(timbre/set-config!
+ {:level :info
+  :appenders {:println (timbre/println-appender {:stream :auto})}})
 
 
 (defn login [config]
@@ -47,7 +49,7 @@
 
 
 (defn explore-item [el]
-  (info "exploring item: " (get-text el))
+  (info "exploring item [" (get-text el) "]")
   (let [aprct (rand-nth [0 1])]
     (get-to el)
     (move-mouse-and-click el)
@@ -72,6 +74,7 @@
 
   (loop [total-liked 0]
     (when (< total-liked (:max-items config))
+      (info "looking around...")
       (dotimes [_ (inc (rand-int 7))]
         (random-sleep)
         ((rand-nth [page-down page-down page-down page-up

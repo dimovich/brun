@@ -14,7 +14,8 @@
 
 (defn runjs
   ([s] (runjs s nil))
-  ([s arg] (browser/execute-script s arg)))
+  ([s arg]
+   (browser/execute-script s arg)))
 
 
 (defn startup
@@ -39,14 +40,17 @@
 
 
 (defn cleanup []
+  (info "cleanup")
   (chrome/quit))
 
 
 (defn navigate [url]
+  (info "navigate to [" url "]")
   (browser/get url))
 
 
 (defn navigate-back []
+  (info "navigate back")
   (.back (browser/navigate)))
 
 
@@ -105,6 +109,7 @@
 
 
 (defn wait-for-id [id]
+  (info "waiting for id [" id "]")
   (wait/until
    (wait/instance 10)
    (wait/condition
@@ -114,6 +119,7 @@
 
 
 (defn wait-for-class [cls]
+  (info "waiting for class [" cls "]")
   (wait/until
    (wait/instance 10)
    (wait/condition
@@ -132,7 +138,6 @@
 (defn random-sleep
   ([] (random-sleep (:wait @state)))
   ([[t1 t2]]
-   (info "random-sleep")
    (wait (+ t1 (inc (rand-int (- t2 t1)))))))
 
 
@@ -163,43 +168,41 @@
 
 
 (defn page-down []
-  (info "page-down")
   (press-keys [wkeys/PAGE_DOWN]))
 
 
 (defn page-up []
-  (info "page-up")
   (press-keys [wkeys/PAGE_UP]))
 
 
 (defn arrow-down []
-  (info "arrow-down")  
   (press-keys [wkeys/ARROW_DOWN]))
 
 
 (defn arrow-up []
-  (info "arrow-up")  
   (press-keys [wkeys/ARROW_UP]))
 
 
 (defn f5 []
-  (info "f5")
   (press-keys [wkeys/F5])
   (wait 5))
 
 
 (defn get-to [el]
-  (info "get-to " (get-text el))
+  (info "getting to [" (get-text el) "]")
   (let [height (/ (:height @state) 2)  ;; stop when element is around middle of screen
         yf (get-y el) ;; final y
         yc (runjs "return window.scrollY;")
         [actions sign] (if (< yf yc)
-                           [[page-up page-up arrow-up arrow-down] >]
-                           [[page-down page-down arrow-down arrow-up] <])]
+                           [[page-up page-up arrow-up arrow-down] <]
+                           [[page-down page-down arrow-down arrow-up] >])]
     (loop [yc yc]
-      (when (sign (+ yc height) yf)
+      (when (sign (+ yf height) yc)
         (do
           ((rand-nth actions))
           (random-sleep)
           (recur (runjs "return window.scrollY;")))))))
+
+
+
 

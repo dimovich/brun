@@ -5,12 +5,12 @@
                  [webica "3.0.0-beta2-clj0"]
                  [com.taoensso/timbre "4.8.0"]])
 
-;;(require 'boot.repl)
+(require 'boot.repl)
 
-#_(swap! boot.repl/*default-dependencies*
+(swap! boot.repl/*default-dependencies*
        concat '[[cider/cider-nrepl "0.15.0-SNAPSHOT"]])
 
-#_(swap! boot.repl/*default-middleware*
+(swap! boot.repl/*default-middleware*
        conj 'cider.nrepl/cider-middleware)
 
 
