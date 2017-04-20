@@ -3,7 +3,9 @@
  :resource-paths #{"resource"}
  :dependencies '[[org.clojure/clojure "1.8.0" :scope "provided"]
                  [webica "3.0.0-beta2-clj0"]
-                 [com.taoensso/timbre "4.8.0"]])
+                 [com.taoensso/timbre "4.8.0"]
+                 ;;[jline "2.11"]
+                 [clojure-lanterna "0.9.7"]])
 
 (require 'boot.repl)
 
@@ -23,7 +25,6 @@
 
 
 (deftask build
-  "Builds an uberjar of this project that can be run with java -jar"
   []
   (comp
    (aot :namespace #{'brun.core})
@@ -31,4 +32,3 @@
    (jar :file "brun.jar" :main 'brun.core)
    (sift :include #{#"brun.jar" #"config.txt"})
    (target :dir #{"target"})))
-

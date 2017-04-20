@@ -8,13 +8,14 @@
 (def config-file "config.txt")
 
 (timbre/set-config!
- {:level :info
+ {:level :debug
   :output-fn (fn [{:keys [timestamp_ level msg_]}]
                (str
                 (second (clojure.string/split (force timestamp_) #" ")) " "
                 ;;(clojure.string/upper-case (name level)) " "
                 (force msg_)))
   :appenders {:println (timbre/println-appender {:stream :auto})}})
+
 
 
 (defn login [config]
@@ -50,7 +51,14 @@
         (move-mouse-and-click sign-in)))))
 
 
-(defn zoom-random-item [])
+(defn zoom-random-item []
+  (when-let [el (rand-nth (by-class-all "lightbox-link"))]
+    (info "zooming random item...")
+    (get-to el)
+    (move-mouse-and-click el)
+    (wait-for-class "zoomable")
+    (random-sleep)
+    (esc)))
 
 
 (defn explore-item [el]
@@ -60,9 +68,9 @@
     (move-mouse-and-click el)
     ;;explore
     (info "looking around...")
-    (dotimes [_ (inc (rand-int 5))]
+    (dotimes [_ (rand-int 5)]
       (random-sleep [1 2])
-      ((rand-nth [page-down zoom-random-item])))
+      ((rand-nth [page-down page-down page-up zoom-random-item])))
     (when (pos? aprct)
       (info "appreciating...")
       (let [el (wait-for-id "appreciation")]
@@ -109,7 +117,7 @@
 
 
 
-;; zoom-in
 ;; hide window
 ;; pause
 ;; navigate out/in
+;;    (check context?)... exception handling

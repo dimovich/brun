@@ -1,21 +1,30 @@
 (ns brun.util
   (:require [clojure.string :as string]
-            [webica.core :as w] ;; must always be first
+            [webica.core :as w]
             [webica.web-driver-wait :as wait]
             [webica.web-driver :as driver]
             [webica.remote-web-driver :as browser]
             [webica.chrome-driver :as chrome]
             [webica.web-element :as element]
             [webica.keys :as wkeys]
-            [taoensso.timbre :as timbre :refer [info debug]]))
+            [taoensso.timbre :as timbre :refer [info debug]]
+            [lanterna.terminal :as t]))
 
 
 (defonce state (atom {}))
+
+(declare poll-terminal-keys)
 
 (defn runjs
   ([s] (runjs s nil))
   ([s arg]
    (browser/execute-script s arg)))
+
+
+(defn start-terminal []
+  (let [term (t/get-terminal :text)]
+    (t/start term)
+    term))
 
 
 (defn startup
@@ -26,9 +35,9 @@
 
    ;; resize for no popups
    (let [[w h] (or (:size cfg) [550 470])]
-    (-> (driver/manage)
-        .window
-        (.setSize (org.openqa.selenium.Dimension. w h))))
+     (-> (driver/manage)
+         .window
+         (.setSize (org.openqa.selenium.Dimension. w h))))
    
    ;; init vars
    (reset! state {:keyboard (browser/get-keyboard)
@@ -36,12 +45,38 @@
                   :actions (org.openqa.selenium.interactions.Actions. (driver/get-instance))
                   :width (runjs "return window.innerWidth;")
                   :height (runjs "return window.innerHeight;")
-                  :wait (:wait cfg)})))
+                  :position (-> (driver/manage) .window .getPosition)
+                  :hidden false
+                  :wait (:wait cfg)
+                  :term (start-terminal)})
+   
+   ;; start listening to console keys
+   (poll-terminal-keys)))
 
 
 (defn cleanup []
   (info "cleanup")
-  (chrome/quit))
+  (chrome/quit)
+  (t/stop (:term @state)))
+
+
+(defn show-hide-browser []
+  (let [pos (if (:hidden @state)
+              (:position @state)
+              (org.openqa.selenium.Point. 10000 10000))]
+    (-> (driver/manage) .window (.setPosition pos)))
+  (swap! state update-in [:hidden] not))
+
+(def console-keys {\h show-hide-browser})
+
+(defn poll-terminal-keys []
+  (let [term (:term @state)]
+    (future
+      (while true
+        (let [k (t/get-key-blocking term)]
+          (debug "pressed" k "key")
+          (when-let [a (console-keys k)]
+            (a)))))))
 
 
 (defn navigate [url]
@@ -188,23 +223,28 @@
   (random-sleep [5 10]))
 
 
+(defn esc []
+  (press-keys [wkeys/ESCAPE]))
+
+
 (defn get-to [el]
   (info "getting to" (str "[" (get-text el) "]"))
   (let [yf (get-y el)
         border 100]
     (loop []
-        (let [yc (runjs "return window.scrollY;")
-              height (runjs "return window.innerHeight;")]
-          (debug yc yf)
-          (when-let [actions (if (> yc (- yf border))
-                               [page-up arrow-up]
-                               (if (> yf (+ yc height))
-                                 [page-down arrow-down]))]
-            (do
-              (debug actions)
-              ((rand-nth actions))
+      (let [yc (runjs "return window.scrollY;")
+            height (runjs "return window.innerHeight;")]
+        (debug yc yf)
+        (when-let [actions (if (> yc (- yf border))
+                             [page-up arrow-up]
+                             (if (> yf (+ yc height))
+                               [page-down arrow-down]))]
+          (do
+            (let [action (rand-nth actions)]
+              (debug action)
+              (action)
               (random-sleep)
-              (recur)))))))
+              (recur))))))))
 
 
 
