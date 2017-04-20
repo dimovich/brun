@@ -8,7 +8,7 @@
 (def config-file "config.txt")
 
 (timbre/set-config!
- {:level :debug
+ {:level :info
   :output-fn (fn [{:keys [timestamp_ level msg_]}]
                (str
                 (second (clojure.string/split (force timestamp_) #" ")) " "
@@ -52,13 +52,15 @@
 
 
 (defn zoom-random-item []
-  (when-let [el (rand-nth (by-class-all "lightbox-link"))]
-    (info "zooming random item...")
-    (get-to el)
-    (move-mouse-and-click el)
-    (wait-for-class "zoomable")
-    (random-sleep)
-    (esc)))
+  (let [elxs (by-class-all "lightbox-link")]
+    (when-not (empty? elxs)
+      (let [el (rand-nth elxs)]
+        (info "zooming random item...")
+        (get-to el)
+        (move-mouse-and-click el)
+        (wait-for-class "zoomable")
+        (random-sleep)
+        (esc)))))
 
 
 (defn explore-item [el]

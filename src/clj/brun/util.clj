@@ -15,6 +15,7 @@
 
 (declare poll-terminal-keys)
 
+
 (defn runjs
   ([s] (runjs s nil))
   ([s arg]
@@ -59,21 +60,29 @@
   (chrome/quit)
   (t/stop (:term @state)))
 
+(defn quit []
+  (info "quiting...")
+  (cleanup)
+  (System/exit 0))
 
 (defn show-hide-browser []
   (let [pos (if (:hidden @state)
               (:position @state)
               (org.openqa.selenium.Point. 10000 10000))]
     (-> (driver/manage) .window (.setPosition pos)))
-  (swap! state update-in [:hidden] not))
+  (swap! state update-in [:hidden] not)
+  (if (:hidden @state)
+    (info "hiding browser")
+    (info "showing browser")))
 
-(def console-keys {\h show-hide-browser})
+(def console-keys {\h show-hide-browser
+                   \x quit})
 
 (defn poll-terminal-keys []
   (let [term (:term @state)]
     (future
       (while true
-        (let [k (t/get-key-blocking term)]
+        (let [k (t/get-key-blocking term {:interval 250})]
           (debug "pressed" k "key")
           (when-let [a (console-keys k)]
             (a)))))))
