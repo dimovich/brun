@@ -58,8 +58,8 @@
         (info "zooming random item...")
         (get-to el)
         (move-mouse-and-click el)
-        (wait-for-class "zoomable")
-        (random-sleep)
+        ;;        (wait-for-class "zoomable")
+        (random-sleep [5 20])
         (esc)))))
 
 
@@ -119,7 +119,8 @@
 
 
 
-;; hide window
 ;; pause
 ;; navigate out/in
-;;    (check context?)... exception handling
+;;    context? (page url)
+;;    exception handling
+;;    

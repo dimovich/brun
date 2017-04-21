@@ -75,8 +75,14 @@
     (info "hiding browser")
     (info "showing browser")))
 
+(defn show-help []
+  (info "h - show/hide browser")
+  (info "x - quit")
+  (info "? - help"))
+
 (def console-keys {\h show-hide-browser
-                   \x quit})
+                   \x quit
+                   \? show-help})
 
 (defn poll-terminal-keys []
   (let [term (:term @state)]
@@ -263,7 +269,8 @@
                   "duuuuuuuude"
                   "cool..."
                   "I like that one"
-                  "this one seems interesting"]]
+                  "this one seems interesting"
+                  "a bit hungry, have you got any cookies?"]]
    (info (rand-nth thoughts))))
 
 
