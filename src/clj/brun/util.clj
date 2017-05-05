@@ -76,13 +76,13 @@
     (info "showing browser")))
 
 (defn show-help []
-  (info "h - show/hide browser")
-  (info "x - quit")
-  (info "? - help"))
+  (info "v - show/hide browser")
+  (info "X - quit")
+  (info "h - help"))
 
-(def console-keys {\h show-hide-browser
-                   \x quit
-                   \? show-help})
+(def console-keys {\v show-hide-browser
+                   \X quit
+                   \h show-help})
 
 (defn poll-terminal-keys []
   (let [term (:term @state)]
