@@ -8,24 +8,16 @@
             [webica.web-element :as element]
             [webica.keys :as wkeys]
             [taoensso.timbre :as timbre :refer [info debug]]
-            [lanterna.terminal :as t]))
+            ;;[brun.term]
+            ))
 
 
 (defonce state (atom {}))
-
-(declare poll-terminal-keys)
-
 
 (defn runjs
   ([s] (runjs s nil))
   ([s arg]
    (browser/execute-script s arg)))
-
-
-(defn start-terminal []
-  (let [term (t/get-terminal :text)]
-    (t/start term)
-    term))
 
 
 (defn startup
@@ -49,49 +41,19 @@
                   :position (-> (driver/manage) .window .getPosition)
                   :hidden false
                   :wait (:wait cfg)
-                  :term (start-terminal)})
+                  ;;:term (start-terminal)
+                  })
    
    ;; start listening to console keys
-   (poll-terminal-keys)))
+   ;;(poll-terminal-keys)
+   ))
 
 
 (defn cleanup []
   (info "cleanup")
   (chrome/quit)
-  (t/stop (:term @state)))
-
-(defn quit []
-  (info "quiting...")
-  (cleanup)
-  (System/exit 0))
-
-(defn show-hide-browser []
-  (let [pos (if (:hidden @state)
-              (:position @state)
-              (org.openqa.selenium.Point. 10000 10000))]
-    (-> (driver/manage) .window (.setPosition pos)))
-  (swap! state update-in [:hidden] not)
-  (if (:hidden @state)
-    (info "hiding browser")
-    (info "showing browser")))
-
-(defn show-help []
-  (info "v - show/hide browser")
-  (info "X - quit")
-  (info "h - help"))
-
-(def console-keys {\v show-hide-browser
-                   \X quit
-                   \h show-help})
-
-(defn poll-terminal-keys []
-  (let [term (:term @state)]
-    (future
-      (while true
-        (let [k (t/get-key-blocking term {:interval 250})]
-          (debug "pressed" k "key")
-          (when-let [a (console-keys k)]
-            (a)))))))
+  ;;(t/stop (:term @state))
+  )
 
 
 (defn navigate [url]
