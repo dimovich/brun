@@ -142,6 +142,8 @@
 
 
 (defn slowly-type [el text]
+  (info "typing:" text)
+  ;;(wait 3)
   (doseq [ch text]
     (wait (rand))
     (element/send-keys el (str ch))))
@@ -203,11 +205,14 @@
 (defn esc []
   (press-keys [wkeys/ESCAPE]))
 
+(defn press-tab []
+  (press-keys [wkeys/TAB]))
+
 
 (defn get-to [el]
-  (info "getting to" (str "[" (get-text el) "]"))
   (let [yf (get-y el)
         border 100]
+    (info "getting to" (str yf " [" (get-text el) "]"))
     (loop []
       (let [yc (runjs "return window.scrollY;")
             height (runjs "return window.innerHeight;")]

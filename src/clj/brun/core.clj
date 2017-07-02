@@ -21,10 +21,10 @@
 (defn login [config]
   (info "sign in...")
   (navigate (:main-url config))
-  (wait-for-id "hamburger-button")
+  (wait-for-class "js-hamburger-button")
   
   (when-not (empty? (by-class-all "js-adobeid-signin"))
-    (let [ham (by-id "hamburger-button")
+    (let [ham (by-class "js-hamburger-button")
           logins (by-class-all "js-adobeid-signin")]
     
       ;; make sure at least one login is visible
@@ -46,6 +46,8 @@
             pass (by-name "password")
             sign-in (by-id "sign_in")]
         (slowly-type user (:user config))
+        (press-tab)
+        (wait 3) ;;fixme
         (slowly-type pass (:pass config))
         (random-sleep)
         (move-mouse-and-click sign-in)))))
@@ -64,20 +66,20 @@
 
 
 (defn explore-item [el]
-  (let [aprct (rand-nth [0 1])]
+  (let [aprct (rand-nth [1 0])]
     (get-to el)
     (info "exploring item" (str "[" (get-text el) "]"))
     (move-mouse-and-click el)
     ;;explore
     (info "looking around...")
     (dotimes [_ (rand-int 5)]
-      (random-sleep [1 2])
+      (random-sleep [0.5 2])
       ((rand-nth [page-down page-down page-up zoom-random-item])))
     (when (pos? aprct)
       (info "appreciating...")
-      (let [el (wait-for-id "appreciation")]
-        (get-to el)
-        (move-mouse-and-click el)))
+      (let [badge (wait-for-class "rf-appreciation")]
+        (get-to badge)
+        (move-mouse-and-click badge)))
     (random-sleep)
     (navigate-back)
     aprct))
@@ -86,11 +88,16 @@
 
 (defn like-items [config]
   (navigate (:like-url config))
-  (wait-for-class "cover-name-link")
+  (wait-for-class "js-project-cover-title-link")
+  
 
   (info "liking items...")
   (loop [total-liked 0]
     (when (< total-liked (:max-likes config))
+      ;;bypass search bar focus
+      (random-sleep)
+      (runjs "document.getElementsByClassName('rf-search-bar__input')[0].blur();")
+
       (when (coin)
         (do (info "zavison...")
             (random-sleep (:long-wait config))))
@@ -99,17 +106,17 @@
         (random-sleep)
         ((rand-nth [page-down page-down page-down page-up
                     arrow-down arrow-up f5 random-thought])))
-      (let [item (rand-nth (by-class-all "cover-name-link"))]
+      (let [item (rand-nth (by-class-all "js-project-cover-title-link"))]
         (recur (+ total-liked (explore-item item)))))))
 
 
 
 
 (defn -main [& args]
-  (let [config (into {:long-wait [5 10]
-                      :wait [1 3]
-                      :max-likes 10}
-                     (edn/read-string (slurp config-file)))]
+  (let [config (merge {:long-wait [1 3]
+                       :wait [0.5 1]
+                       :max-likes 10}
+                      (edn/read-string (slurp config-file)))]
     (info "starting up with config: \n" config)
     (startup config)
     (login config)
@@ -124,3 +131,10 @@
 ;;    context? (page url)
 ;;    exception handling
 ;;    
+
+
+#_(like-items (into (edn/read-string (slurp config-file))
+                    {:long-wait [1 2]
+                     :wait [0.5 1]
+                     :max-likes 10}))
+
