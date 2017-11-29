@@ -209,18 +209,19 @@
   (press-keys [wkeys/TAB]))
 
 
-(defn get-to [el]
-  (let [yf (get-y el)
-        border 100]
-    (info "getting to" (str yf " [" (get-text el) "]"))
+(defn get-to [el & [opts]]
+  (let [border 100]
+    (info "getting to" (str (get-y el) " [" (get-text el) "]"))
     (loop []
-      (let [yc (runjs "return window.scrollY;")
-            height (runjs "return window.innerHeight;")]
+      (let [yf (get-y el)
+            yc (runjs "return window.scrollY;")
+            height (- (runjs "return window.innerHeight;") 10)]
         (debug yc yf)
-        (when-let [actions (if (> yc (- yf border))
-                             [page-up arrow-up]
-                             (if (> yf (+ yc height))
-                               [page-down arrow-down]))]
+        (when-let [actions (cond
+                             (:down opts) [page-down]
+                             (> yf (+ yc height)) [page-down arrow-down]
+                             (> yc (- yf border)) [page-up arrow-up]
+                             :default nil)]
           (do
             (let [action (rand-nth actions)]
               (debug action)

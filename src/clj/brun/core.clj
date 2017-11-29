@@ -25,7 +25,7 @@
   
   (when-not (empty? (by-class-all "js-adobeid-signin"))
     (let [ham (by-class "js-hamburger-button")
-          logins (by-class-all "js-adobeid-signin")]
+          logins #(by-class-all "rf-button--secondary")] ;;"js-adobeid-signin"
     
       ;; make sure at least one login is visible
       (when (visible? ham)
@@ -35,7 +35,7 @@
     
       ;; click on login
       (move-mouse-and-click
-       (->> logins
+       (->> (logins)
             (filter #(visible? %))
             first))
 
@@ -66,7 +66,7 @@
 
 
 (defn explore-item [el]
-  (let [aprct (rand-nth [1 0])]
+  (let [aprct 1 #_(rand-nth [1 0])]
     (get-to el)
     (info "exploring item" (str "[" (get-text el) "]"))
     (move-mouse-and-click el)
@@ -74,12 +74,17 @@
     (info "looking around...")
     (dotimes [_ (rand-int 5)]
       (random-sleep [0.5 2])
-      ((rand-nth [page-down page-down page-up zoom-random-item])))
+      ((rand-nth [page-down page-down page-up #_zoom-random-item])))
     (when (pos? aprct)
       (info "appreciating...")
-      (let [badge (wait-for-class "rf-appreciation")]
-        (get-to badge)
-        (move-mouse-and-click badge)))
+      (let [badge       (wait-for-class "rf-icon--appreciate")
+            badge-click (wait-for-class "rf-appreciation--badge")
+            copyright   (wait-for-class "rf-footer__copyrights")]
+
+        (when (.isDisplayed badge-click)
+          (do ;;(get-to copyright)
+            (get-to badge)
+            (move-mouse-and-click badge-click)))))
     (random-sleep)
     (navigate-back)
     aprct))
