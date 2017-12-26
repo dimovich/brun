@@ -7,4 +7,4 @@
  :wait [0.5 1]
  :long-wait [1 2]
  ;;:chromepath "chromedriver.exe"
- }
+ :firefox "/home/dimovich/bin/geckodriver"}

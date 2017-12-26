@@ -1,7 +1,7 @@
 (set-env!
  :source-paths #{"src/clj"}
  :resource-paths #{"resource"}
- :dependencies '[[org.clojure/clojure "1.8.0" :scope "provided"]
+ :dependencies '[[org.clojure/clojure "1.9.0"]
                  ;;[adzerk/boot-reload  "0.5.2" :scope "test"]
                  [webica "3.0.0-beta2-clj0"]
                  [com.taoensso/timbre "4.10.0"]

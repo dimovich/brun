@@ -5,6 +5,7 @@
             [webica.web-driver :as driver]
             [webica.remote-web-driver :as browser]
             [webica.chrome-driver :as chrome]
+;;            [webica.firefox-driver :as firefox]
             [webica.web-element :as element]
             [webica.keys :as wkeys]
             [taoensso.timbre :as timbre :refer [info debug]]
@@ -24,6 +25,7 @@
   ([]
    (startup nil))
   ([cfg]
+   ;;(firefox/start-firefox (:firefox cfg))
    (chrome/start-chrome (:chromepath cfg))
 
    ;; resize for no popups
@@ -38,7 +40,6 @@
                   :actions (org.openqa.selenium.interactions.Actions. (driver/get-instance))
                   :width (runjs "return window.innerWidth;")
                   :height (runjs "return window.innerHeight;")
-                  :position (-> (driver/manage) .window .getPosition)
                   :hidden false
                   :wait (:wait cfg)
                   ;;:term (start-terminal)
@@ -50,8 +51,9 @@
 
 
 (defn cleanup []
-  (info "cleanup")
+  (info "cleaning up...")
   (chrome/quit)
+  ;;(firefox/quit)
   ;;(t/stop (:term @state))
   )
 
@@ -123,7 +125,7 @@
 (defn wait-for-id [id]
   (info "waiting for id" (str "[" id "]"))
   (wait/until
-   (wait/instance 20)
+   (wait/instance 10)
    (wait/condition
     (fn [driver]
       (try (browser/find-element-by-id id)
@@ -221,15 +223,14 @@
             delta (- yf yc)]
         (debug yc yf)
         
-        (when-let [actions
-                   (cond
-                     (:down opts) [page-down]
-                     (neg? delta) [page-up]
-                     (< delta (* 0.2 height)) [arrow-up]
-                     (> delta height) [page-down]
-                     (> delta (* 0.8 height)) [arrow-down]
-                     ;;                             :default nil
-                     )
+        (when-let [actions (cond
+                             (:down opts) [page-down]
+                             (neg? delta) [page-up]
+                             (< delta (* 0.2 height)) [arrow-up]
+                             (> delta height) [page-down]
+                             (> delta (* 0.8 height)) [arrow-down]
+                             ;;                             :default nil
+                             )
 
                    #_(cond
                        (:down opts) [page-down]
