@@ -39,7 +39,9 @@
             (filter #(visible? %))
             first))
 
+      
       (wait-for-id "sign_in")
+      ;;(wait 5)
     
       ;; enter credentials
       (let [user (by-name "username")

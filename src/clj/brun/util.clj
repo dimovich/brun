@@ -123,11 +123,12 @@
 (defn wait-for-id [id]
   (info "waiting for id" (str "[" id "]"))
   (wait/until
-   (wait/instance 10)
+   (wait/instance 20)
    (wait/condition
     (fn [driver]
       (try (browser/find-element-by-id id)
-           (catch java.lang.reflect.InvocationTargetException e false))))))
+           (catch java.lang.reflect.InvocationTargetException e false)
+           (finally true))))))
 
 
 (defn wait-for-class [cls]
@@ -205,6 +206,7 @@
 (defn esc []
   (press-keys [wkeys/ESCAPE]))
 
+
 (defn press-tab []
   (press-keys [wkeys/TAB]))
 
@@ -215,13 +217,25 @@
     (loop []
       (let [yf (get-y el)
             yc (runjs "return window.scrollY;")
-            height (- (runjs "return window.innerHeight;") 10)]
+            height (runjs "return window.innerHeight;")
+            delta (- yf yc)]
         (debug yc yf)
-        (when-let [actions (cond
-                             (:down opts) [page-down]
-                             (> yf (+ yc height)) [page-down arrow-down]
-                             (> yc (- yf border)) [page-up arrow-up]
-                             :default nil)]
+        
+        (when-let [actions
+                   (cond
+                     (:down opts) [page-down]
+                     (neg? delta) [page-up]
+                     (< delta (* 0.2 height)) [arrow-up]
+                     (> delta height) [page-down]
+                     (> delta (* 0.8 height)) [arrow-down]
+                     ;;                             :default nil
+                     )
+
+                   #_(cond
+                       (:down opts) [page-down]
+                       (> yf (+ yc height)) [page-down arrow-down]
+                       (> yc (- yf border)) [page-up arrow-up]
+                       :default nil)]
           (do
             (let [action (rand-nth actions)]
               (debug action)
