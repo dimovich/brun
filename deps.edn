@@ -1,0 +1,20 @@
+{:paths ["src/clj"]
+ 
+ :deps {org.clojure/clojure {:mvn/version "1.10.0-alpha5"}
+        com.taoensso/timbre {:mvn/version "4.10.0"}
+        etaoin {:mvn/version "0.2.9"}
+        webica {:mvn/version "3.0.0-beta2-clj0"}
+        clojure-lanterna {:mvn/version "0.9.7"}}
+
+
+ :aliases
+ {:run
+  {:main-opts ["-m" "brun.core"]}
+  
+  :uberjar
+  {:extra-deps {pack/pack.alpha
+                {:git/url "https://github.com/juxt/pack.alpha.git"
+                 :sha "e6d0691c5f58135e1ef6fb1c9dda563611d36205"}}
+   
+   :main-opts ["-m" "mach.pack.alpha.capsule" "deps.edn"
+               "release/brun.jar" "brun" "0.2.0"]}}}
