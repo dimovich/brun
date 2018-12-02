@@ -32,8 +32,11 @@
     (et/click sr/index-hamburger-signin)
 
     (et/wait-visible sr/signin-user)
+    (et/click sr/signin-user)
+    (random-sleep)
     (et/fill-human sr/signin-user (:user config))
-  
+
+    (et/wait-visible sr/signin-pass)
     (et/click sr/signin-pass)
     (random-sleep)
     (et/fill-human sr/signin-pass (:pass config))

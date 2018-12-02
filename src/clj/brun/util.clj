@@ -8,7 +8,7 @@
 
 (defn startup [& [cfg]]
   (info "starting up...")
-  (et/firefox (select-keys cfg [:size :path-driver])))
+  (et/firefox (select-keys cfg [:size :path-driver :args])))
 
 
 (defn cleanup [driver]
