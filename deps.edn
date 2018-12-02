@@ -2,9 +2,7 @@
  
  :deps {org.clojure/clojure {:mvn/version "1.10.0-alpha5"}
         com.taoensso/timbre {:mvn/version "4.10.0"}
-        etaoin {:mvn/version "0.2.9"}
-        webica {:mvn/version "3.0.0-beta2-clj0"}
-        clojure-lanterna {:mvn/version "0.9.7"}}
+        etaoin {:mvn/version "0.2.9"}}
 
 
  :aliases
