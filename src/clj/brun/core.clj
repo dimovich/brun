@@ -3,8 +3,7 @@
             [etaoin.api :as et]
             [brun.util :refer :all]
             [brun.selectors :as sr]
-            [taoensso.timbre :as timbre :refer [info]])
-  (:gen-class))
+            [taoensso.timbre :as timbre :refer [info]]))
 
 
 (def config-file "config.edn")
@@ -50,51 +49,60 @@
         el-text (et/get-element-text-el driver item)]
 
     (get-to driver item)
-
-    (info "exploring item" (str "[" el-text "]"))
     (et/click-el driver item)
-
-    (et/wait-visible driver sr/gallery-item-appreciate)
     
-    (info "looking around...")
-    (dotimes [_ (rand-int 3)]
-      (random-sleep driver [0.5 2])
-      ((rand-nth [page-down page-down page-up]) driver))
+    (when (et/exists? driver sr/gallery-item-appreciate)
+      
+      (et/wait-visible driver sr/gallery-item-appreciate)
+      
+      (info "exploring item" (str "[" el-text "]"))
+      
+      (dotimes [_ (rand-int 3)]
+        (random-sleep driver [0.5 1])
+        ((rand-nth [page-down page-down page-up]) driver))
     
-    (when (pos? aprct)
-      (info "appreciating...")
-      (let [badge (et/query driver sr/gallery-item-appreciate)]
-        (when (empty? (et/get-element-text-el driver badge))
-          (get-to driver badge)
-          (et/click-el driver badge))))
+      (when (pos? aprct)
+        (info "appreciating...")
+        (when-let [badge (et/query driver sr/gallery-item-appreciate)]
+          (when (empty? (et/get-element-text-el driver badge))
+            (random-sleep driver)
+            (get-to driver badge)
+            (et/click-el driver badge)))))
     
     (random-sleep driver)
     (et/back driver)
     aprct))
 
 
+(defn blur-search-bar
+  "Bypass search bar focus."
+  [driver]
+  (et/js-execute driver "document.getElementsByClassName('rf-search-bar__input')[0].blur();"))
+
 
 (defn explore-items [driver config]
   (et/go driver (:like-url config))
   (et/wait-visible driver sr/gallery-content)
   
-  (info "liking items...")
+  (info "exploring items...")
   (loop [total-liked 0]
     (when (< total-liked (:max-likes config))
-      ;;bypass search bar focus
+
+      (blur-search-bar driver)
       (random-sleep driver)
       
-
       (when (throw-coin)
         (do (info "zavison...")
             (random-sleep driver (:long-wait config))))
+      
       (info "looking around...")
       (dotimes [_ (inc (rand-int 7))]
-        (et/js-execute driver "document.getElementsByClassName('rf-search-bar__input')[0].blur();")
+        (blur-search-bar driver)
         (random-sleep driver)
         ((rand-nth [page-down page-down page-down page-up
                     arrow-down arrow-up f5 random-thought])
          driver))
+      
       (let [item (rand-nth (et/query-all driver sr/gallery-item-link))]
         (recur (+ total-liked (like-item driver item)))))))
 
@@ -113,18 +121,4 @@
         (random-sleep)
         (explore-items config)
         (cleanup)))))
-
-
-
-;; pause
-;; navigate out/in
-;;    context? (page url)
-;;    exception handling
-;;    
-
-
-#_(like-items (into (edn/read-string (slurp config-file))
-                    {:long-wait [1 2]
-                     :wait [0.5 1]
-                     :max-likes 10}))
 

@@ -8,7 +8,7 @@
 
 (defn startup [& [cfg]]
   (info "starting up...")
-  (et/firefox {:size (or (:size cfg) [740 740])}))
+  (et/firefox (select-keys cfg [:size :path-driver])))
 
 
 (defn cleanup [driver]
@@ -18,7 +18,7 @@
 
 
 (defn random-sleep
-  ([driver] (random-sleep driver [1 5]))
+  ([driver] (random-sleep driver [1 3]))
   ([driver [t1 t2]]
    (et/wait driver (+ t1 (inc (rand-int (- t2 t1)))))))
 
@@ -66,12 +66,10 @@
 (defn get-to [driver el]
   (let [el-pos (get-pos-el driver el)
         el-text (et/get-element-text-el driver el)]
-    (info "getting to" (str (int (:y el-pos)) " [" el-text "]"))
+    (info "getting to [" el-text "]")
     (loop []
       (let [ely (:y (get-pos-el driver el))
             height (get-window-height driver)]
-        
-        (info (str (int ely) "px"))
         
         (when-let
             [actions (cond
@@ -79,6 +77,7 @@
                        (< ely (* 0.2 height)) [arrow-up]
                        (> ely height) [page-down]
                        (> ely (* 0.6 height)) [arrow-down])]
+          
             (let [action (rand-nth actions)]
               (debug action)
               (action driver)

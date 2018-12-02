@@ -14,7 +14,6 @@
   :uberjar
   {:extra-deps {pack/pack.alpha
                 {:git/url "https://github.com/juxt/pack.alpha.git"
-                 :sha "e6d0691c5f58135e1ef6fb1c9dda563611d36205"}}
+                 :sha "ddbbdbd4001c75647deddaad0f8bb7dc954fcb6f"}}
    
-   :main-opts ["-m" "mach.pack.alpha.capsule" "deps.edn"
-               "release/brun.jar" "brun" "0.2.0"]}}}
+   :main-opts ["-m" "mach.pack.alpha.capsule" "release/brun.jar" "-m brun.core"]}}}
