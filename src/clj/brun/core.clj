@@ -1,11 +1,13 @@
 (ns brun.core
   (:require [clojure.edn :as edn]
+            [etaoin.api :as et]
             [brun.util :refer :all]
+            [brun.selectors :as sr]
             [taoensso.timbre :as timbre :refer [info]])
   (:gen-class))
 
 
-(def config-file "config.txt")
+(def config-file "config.edn")
 
 (timbre/set-config!
  {:level :info
@@ -18,103 +20,83 @@
 
 
 
-(defn login [config]
-  (info "sign in...")
-  (navigate (:main-url config))
-  (wait-for-class "js-hamburger-button")
+(defn login [driver config]
+  (info "signing in...")
+  (doto driver
+    (et/go (:main-url config))
   
-  (when-not (empty? (by-class-all "js-adobeid-signin"))
-    (let [ham (by-class "js-hamburger-button")
-          logins #(by-class-all "rf-button--secondary")] ;;"js-adobeid-signin"
+    (et/wait-visible sr/index-hamburger)
+
+    (random-sleep [5 10])
+
+    (et/click sr/index-hamburger)
+    (et/click sr/index-hamburger-signin)
+
+    (et/wait-visible sr/signin-user)
+    (et/fill-human sr/signin-user (:user config))
+  
+    (et/click sr/signin-pass)
+    (random-sleep)
+    (et/fill-human sr/signin-pass (:pass config))
+
+    (et/wait-visible sr/signin-button)
+    (et/click sr/signin-button)))
+
+
+
+
+(defn like-item [driver item]
+  (let [aprct 1 #_(rand-nth [1 0])
+        el-text (et/get-element-text-el driver item)]
+
+    (get-to driver item)
+
+    (info "exploring item" (str "[" el-text "]"))
+    (et/click-el driver item)
+
+    (et/wait-visible driver sr/gallery-item-appreciate)
     
-      ;; make sure at least one login is visible
-      (when (visible? ham)
-        (move-mouse-and-click ham))
-
-      (wait 5)
-    
-      ;; click on login
-      (move-mouse-and-click
-       (->> (logins)
-            (filter #(visible? %))
-            first))
-
-      
-      (wait-for-id "sign_in")
-      ;;(wait 5)
-    
-      ;; enter credentials
-      (let [user (by-name "username")
-            pass (by-name "password")
-            sign-in (by-id "sign_in")]
-        (slowly-type user (:user config))
-        (press-tab)
-        (wait 3) ;;fixme
-        (slowly-type pass (:pass config))
-        (random-sleep)
-        (move-mouse-and-click sign-in)))))
-
-
-(defn zoom-random-item []
-  (let [elxs (by-class-all "lightbox-link")]
-    (when-not (empty? elxs)
-      (let [el (rand-nth elxs)]
-        (info "zooming random item...")
-        (get-to el)
-        (move-mouse-and-click el)
-        ;;        (wait-for-class "zoomable")
-        (random-sleep [5 20])
-        (esc)))))
-
-
-(defn explore-item [el]
-  (let [aprct 1 #_(rand-nth [1 0])]
-    (get-to el)
-    (info "exploring item" (str "[" (get-text el) "]"))
-    (move-mouse-and-click el)
-    ;;explore
     (info "looking around...")
-    (dotimes [_ (rand-int 5)]
-      (random-sleep [0.5 2])
-      ((rand-nth [page-down page-down page-up #_zoom-random-item])))
+    (dotimes [_ (rand-int 3)]
+      (random-sleep driver [0.5 2])
+      ((rand-nth [page-down page-down page-up]) driver))
+    
     (when (pos? aprct)
       (info "appreciating...")
-      (let [badge       (wait-for-class "rf-icon--appreciate")
-            badge-click (wait-for-class "rf-appreciation--badge")
-            copyright   (wait-for-class "rf-footer__copyrights")]
-
-        (when (.isDisplayed badge-click)
-          (do ;;(get-to copyright)
-            (get-to badge)
-            (move-mouse-and-click badge-click)))))
-    (random-sleep)
-    (navigate-back)
+      (let [badge (et/query driver sr/gallery-item-appreciate)]
+        (when (empty? (et/get-element-text-el driver badge))
+          (get-to driver badge)
+          (et/click-el driver badge))))
+    
+    (random-sleep driver)
+    (et/back driver)
     aprct))
 
 
 
-(defn like-items [config]
-  (navigate (:like-url config))
-  (wait-for-class "js-project-cover-title-link")
+(defn explore-items [driver config]
+  (et/go driver (:like-url config))
+  (et/wait-visible driver sr/gallery-content)
   
-
   (info "liking items...")
   (loop [total-liked 0]
     (when (< total-liked (:max-likes config))
       ;;bypass search bar focus
-      (random-sleep)
-      (runjs "document.getElementsByClassName('rf-search-bar__input')[0].blur();")
+      (random-sleep driver)
+      
 
-      (when (coin)
+      (when (throw-coin)
         (do (info "zavison...")
-            (random-sleep (:long-wait config))))
+            (random-sleep driver (:long-wait config))))
       (info "looking around...")
       (dotimes [_ (inc (rand-int 7))]
-        (random-sleep)
+        (et/js-execute driver "document.getElementsByClassName('rf-search-bar__input')[0].blur();")
+        (random-sleep driver)
         ((rand-nth [page-down page-down page-down page-up
-                    arrow-down arrow-up f5 random-thought])))
-      (let [item (rand-nth (by-class-all "js-project-cover-title-link"))]
-        (recur (+ total-liked (explore-item item)))))))
+                    arrow-down arrow-up f5 random-thought])
+         driver))
+      (let [item (rand-nth (et/query-all driver sr/gallery-item-link))]
+        (recur (+ total-liked (like-item driver item)))))))
 
 
 
@@ -124,12 +106,13 @@
                        :wait [0.5 1]
                        :max-likes 10}
                       (edn/read-string (slurp config-file)))]
-    (info "starting up with config: \n" config)
-    (startup config)
-    (login config)
-    (random-sleep)
-    (like-items config)
-    (cleanup)))
+    (info "config: \n" config)
+    (let [driver (startup config)]
+      (doto driver
+        (login config)
+        (random-sleep)
+        (explore-items config)
+        (cleanup)))))
 
 
 

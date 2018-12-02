@@ -1,252 +1,93 @@
 (ns brun.util
   (:require [clojure.string :as string]
-            [webica.core :as w]
-            [webica.web-driver-wait :as wait]
-            [webica.web-driver :as driver]
-            [webica.remote-web-driver :as browser]
-            [webica.chrome-driver :as chrome]
-;;            [webica.firefox-driver :as firefox]
-            [webica.web-element :as element]
-            [webica.keys :as wkeys]
-            [taoensso.timbre :as timbre :refer [info debug]]
-            ;;[brun.term]
-            ))
+            [etaoin.api :as et]
+            [etaoin.keys :as ek]
+            [taoensso.timbre :as timbre :refer [info debug]]))
 
 
-(defonce state (atom {}))
 
-(defn runjs
-  ([s] (runjs s nil))
-  ([s arg]
-   (browser/execute-script s arg)))
+(defn startup [& [cfg]]
+  (info "starting up...")
+  (et/firefox {:size (or (:size cfg) [740 740])}))
 
 
-(defn startup
-  ([]
-   (startup nil))
-  ([cfg]
-   ;;(firefox/start-firefox (:firefox cfg))
-   (chrome/start-chrome (:chromepath cfg))
-
-   ;; resize for no popups
-   (let [[w h] (or (:size cfg) [550 470])]
-     (-> (driver/manage)
-         .window
-         (.setSize (org.openqa.selenium.Dimension. w h))))
-   
-   ;; init vars
-   (reset! state {:keyboard (browser/get-keyboard)
-                  :mouse (browser/get-mouse)
-                  :actions (org.openqa.selenium.interactions.Actions. (driver/get-instance))
-                  :width (runjs "return window.innerWidth;")
-                  :height (runjs "return window.innerHeight;")
-                  :hidden false
-                  :wait (:wait cfg)
-                  ;;:term (start-terminal)
-                  })
-   
-   ;; start listening to console keys
-   ;;(poll-terminal-keys)
-   ))
-
-
-(defn cleanup []
+(defn cleanup [driver]
   (info "cleaning up...")
-  (chrome/quit)
-  ;;(firefox/quit)
-  ;;(t/stop (:term @state))
-  )
+  (et/quit driver))
 
-
-(defn navigate [url]
-  (info "navigate to" (str "[" url "]"))
-  (browser/get url))
-
-
-(defn navigate-back []
-  (info "navigate back")
-  (.back (browser/navigate)))
-
-
-(defn by-id [id]
-  (browser/find-element-by-id id))
-
-
-(defn by-class [cls]
-  (browser/find-element-by-class-name cls))
-
-
-(defn by-id-all [id]
-  (browser/find-elements-by-id id))
-
-
-(defn by-class-all [cls]
-  (browser/find-elements-by-class-name cls))
-
-
-(defn by-name [s]
-  (browser/find-element-by-name s))
-
-
-(defn by-link-text [s]
-  (browser/find-element-by-link-text s))
-
-
-(defn visible? [el]
-  (boolean (element/is-displayed? el)))
-
-
-(defn wait [t]
-  (w/sleep t))
-
-
-(defn get-attr [el attr]
-  (element/get-attribute el attr))
-
-
-(defn get-text [el]
-  (element/get-text el))
-
-
-(defn press-keys [ks]
-  (.sendKeys (:keyboard @state) (into-array CharSequence ks)))
-
-
-(defn wait-for-title [title]
-  (wait/until
-   (wait/instance 10)
-   (wait/condition
-    (fn [driver]
-      (string/starts-with?
-       (string/lower-case (driver/get-title driver))
-       (string/lower-case title))))))
-
-
-(defn wait-for-id [id]
-  (info "waiting for id" (str "[" id "]"))
-  (wait/until
-   (wait/instance 10)
-   (wait/condition
-    (fn [driver]
-      (try (browser/find-element-by-id id)
-           (catch java.lang.reflect.InvocationTargetException e false)
-           (finally true))))))
-
-
-(defn wait-for-class [cls]
-  (info "waiting for class" (str "[" cls "]"))
-  (wait/until
-   (wait/instance 10)
-   (wait/condition
-    (fn [driver]
-      (try (browser/find-element-by-class-name cls)
-           (catch java.lang.reflect.InvocationTargetException e false)
-           (finally true))))))
-
-
-(defn slowly-type [el text]
-  (info "typing:" text)
-  ;;(wait 3)
-  (doseq [ch text]
-    (wait (rand))
-    (element/send-keys el (str ch))))
 
 
 (defn random-sleep
-  ([] (random-sleep (:wait @state)))
-  ([[t1 t2]]
-   (wait (+ t1 (inc (rand-int (- t2 t1)))))))
+  ([driver] (random-sleep driver [1 5]))
+  ([driver [t1 t2]]
+   (et/wait driver (+ t1 (inc (rand-int (- t2 t1)))))))
 
 
-
-(defn get-y [el]
-  (.y (element/get-location el)))
-
-
-(defn get-x [el]
-  (.x (element/get-location el)))
+(defn page-down [driver]
+  (doto driver
+    (et/fill {:tag :body} ek/pagedown)))
 
 
-(defn move-mouse-to [el]
-  ;;(.perform (.moveToElement (:actions @state) el))
-  (.mouseMove (:mouse @state) (.getCoordinates el)))
+(defn page-up [driver]
+  (doto driver
+    (et/fill {:tag :body} ek/pageup)))
 
 
-(defn move-mouse-and-click [el]
-  #_(let [y (get-y el)]
-    (when (< y 100)
-      (runjs (str "window.scrollBy(0," (- y 100) ");"))))
-  (move-mouse-to el)
-  (random-sleep)
-  (.click el))
+(defn arrow-down [driver]
+  (doto driver
+    (et/fill {:tag :body} ek/arrow-down)))
 
 
-(defn move-random [])
+(defn arrow-up [driver]
+  (doto driver
+    (et/fill {:tag :body} ek/arrow-up)))
 
 
-(defn page-down []
-  (press-keys [wkeys/PAGE_DOWN]))
+(defn f5 [driver]
+  (et/refresh driver)
+  (random-sleep driver [5 10]))
 
 
-(defn page-up []
-  (press-keys [wkeys/PAGE_UP]))
+(defn esc [driver]
+  (et/click driver {:tag :body}))
 
 
-(defn arrow-down []
-  (press-keys [wkeys/ARROW_DOWN]))
+(defn get-pos-el [driver item]
+  (let [script
+        (str "var rect = arguments[0].getBoundingClientRect();"
+             "return {x: rect.left, y: rect.top};")]
+    (et/js-execute driver script (et/el->ref item))))
 
 
-(defn arrow-up []
-  (press-keys [wkeys/ARROW_UP]))
+(defn get-window-height [driver]
+  (et/js-execute driver "return window.innerHeight"))
 
 
-(defn f5 []
-  (press-keys [wkeys/F5])
-  (random-sleep [5 10]))
-
-
-(defn esc []
-  (press-keys [wkeys/ESCAPE]))
-
-
-(defn press-tab []
-  (press-keys [wkeys/TAB]))
-
-
-(defn get-to [el & [opts]]
-  (let [border 100]
-    (info "getting to" (str (get-y el) " [" (get-text el) "]"))
+(defn get-to [driver el]
+  (let [el-pos (get-pos-el driver el)
+        el-text (et/get-element-text-el driver el)]
+    (info "getting to" (str (int (:y el-pos)) " [" el-text "]"))
     (loop []
-      (let [yf (get-y el)
-            yc (runjs "return window.scrollY;")
-            height (runjs "return window.innerHeight;")
-            delta (- yf yc)]
-        (debug yc yf)
+      (let [ely (:y (get-pos-el driver el))
+            height (get-window-height driver)]
         
-        (when-let [actions (cond
-                             (:down opts) [page-down]
-                             (neg? delta) [page-up]
-                             (< delta (* 0.2 height)) [arrow-up]
-                             (> delta height) [page-down]
-                             (> delta (* 0.8 height)) [arrow-down]
-                             ;;                             :default nil
-                             )
-
-                   #_(cond
-                       (:down opts) [page-down]
-                       (> yf (+ yc height)) [page-down arrow-down]
-                       (> yc (- yf border)) [page-up arrow-up]
-                       :default nil)]
-          (do
+        (info (str (int ely) "px"))
+        
+        (when-let
+            [actions (cond
+                       (< ely 0) [page-up]
+                       (< ely (* 0.2 height)) [arrow-up]
+                       (> ely height) [page-down]
+                       (> ely (* 0.6 height)) [arrow-down])]
             (let [action (rand-nth actions)]
               (debug action)
-              (action)
-              (random-sleep)
-              (recur))))))))
+              (action driver)
+              (random-sleep driver)
+              (recur)))))))
 
 
 
-(defn random-thought []
+(defn random-thought [_]
   (let [thoughts ["what the hell is THAT!"
                   "am I really just a program?"
                   "duuuuuuuude"
@@ -257,5 +98,5 @@
    (info (rand-nth thoughts))))
 
 
-(defn coin []
+(defn throw-coin []
   (rand-nth [true false]))
