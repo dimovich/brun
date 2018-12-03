@@ -116,9 +116,7 @@
 
 
 (defn -main [& args]
-  (let [config (merge {:long-wait [1 3]
-                       :wait [0.5 1]
-                       :max-likes 10}
+  (let [config (merge {:max-likes 10}
                       (edn/read-string (slurp config-file)))]
     (info "config:")
     (clojure.pprint/pprint config)
