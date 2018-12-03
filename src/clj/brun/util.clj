@@ -18,7 +18,7 @@
 
 
 (defn random-sleep
-  ([driver] (random-sleep driver [1 3]))
+  ([driver] (random-sleep driver [1 2]))
   ([driver [t1 t2]]
    (et/wait driver (+ t1 (inc (rand-int (- t2 t1)))))))
 

@@ -97,7 +97,7 @@
       
       (when (throw-coin)
         (do (info "zavison...")
-            (random-sleep driver (:long-wait config))))
+            (random-sleep driver [5 10])))
       
       (info "looking around...")
       (dotimes [_ (inc (rand-int 7))]
