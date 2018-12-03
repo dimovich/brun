@@ -22,14 +22,15 @@
 (defn login [driver config]
   (info "signing in...")
   (doto driver
-    (et/go (:main-url config))
+    (et/go (:login-url config))
   
     (et/wait-visible sr/index-hamburger)
 
     (random-sleep [5 10])
+    (et/click-visible sr/index-hamburger)
 
-    (et/click sr/index-hamburger)
-    (et/click sr/index-hamburger-signin)
+    (random-sleep [5 10])
+    (et/click-visible sr/index-hamburger-signin)
 
     (et/wait-visible sr/signin-user)
     (et/click sr/signin-user)
@@ -61,7 +62,7 @@
       (info "exploring item" (str "[" el-text "]"))
       
       (dotimes [_ (rand-int 3)]
-        (random-sleep driver [0.5 1])
+        (random-sleep driver)
         ((rand-nth [page-down page-down page-up]) driver))
     
       (when (pos? aprct)
@@ -91,8 +92,8 @@
   (loop [total-liked 0]
     (when (< total-liked (:max-likes config))
 
-      (blur-search-bar driver)
       (random-sleep driver)
+      (blur-search-bar driver)
       
       (when (throw-coin)
         (do (info "zavison...")
@@ -105,6 +106,8 @@
         ((rand-nth [page-down page-down page-down page-up
                     arrow-down arrow-up f5 random-thought])
          driver))
+
+      (blur-search-bar driver)
       
       (let [item (rand-nth (et/query-all driver sr/gallery-item-link))]
         (recur (+ total-liked (like-item driver item)))))))
@@ -117,7 +120,9 @@
                        :wait [0.5 1]
                        :max-likes 10}
                       (edn/read-string (slurp config-file)))]
-    (info "config: \n" config)
+    (info "config:")
+    (clojure.pprint/pprint config)
+    
     (let [driver (startup config)]
       (doto driver
         (login config)
