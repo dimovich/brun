@@ -90,11 +90,12 @@
   (let [thoughts ["what the hell is THAT!"
                   "am I really just a program?"
                   "duuuuuuuude"
-                  "cool..."
-                  "I like that one"
-                  "this one seems interesting"
+                  "cool"
+                  "hmmm..."
+                  "I like that one."
+                  "this one seems interesting..."
                   "a bit hungry, have you got any cookies?"]]
-   (info (rand-nth thoughts))))
+    (info (rand-nth thoughts))))
 
 
 (defn throw-coin []
