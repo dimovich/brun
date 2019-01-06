@@ -78,10 +78,16 @@
     aprct))
 
 
+
 (defn blur-search-bar
   "Bypass search bar focus."
   [driver]
-  (et/js-execute driver "document.getElementsByClassName('rf-search-bar__input')[0].blur();"))
+  (try
+    (et/js-execute
+     driver
+     "document.getElementsByClassName('rf-search-bar__input')[0].blur();")
+    (catch Exception e nil)))
+
 
 
 (defn explore-items [driver config]
@@ -121,10 +127,19 @@
     (info "config:")
     (clojure.pprint/pprint config)
     
-    (let [driver (startup config)]
-      (doto driver
-        (login config)
-        (random-sleep)
-        (explore-items config)
-        (cleanup)))))
+    (let [tear-msg #(info "ERROR! You're Tearing me Apart!!")
+          run-fn (fn [driver]
+                   (try
+                     (doto driver
+                       (login config)
+                       (random-sleep)
+                       (explore-items config)
+                       (cleanup))
+                     :success
+                     (catch Exception e (tear-msg))))]
+
+      (loop []
+        (when-let [driver (startup config)]
+          (when-not (run-fn driver)
+            (recur)))))))
 
