@@ -13,7 +13,9 @@
 
 (defn cleanup [driver]
   (info "cleaning up...")
-  (et/quit driver))
+  (try
+    (et/quit driver)
+    (catch Exception e)))
 
 
 

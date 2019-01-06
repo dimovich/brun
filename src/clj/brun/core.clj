@@ -133,13 +133,14 @@
                      (doto driver
                        (login config)
                        (random-sleep)
-                       (explore-items config)
-                       (cleanup))
+                       (explore-items config))
                      :success
-                     (catch Exception e (tear-msg))))]
+                     (catch Exception e (tear-msg))
+                     (finally (cleanup driver))))]
 
       (loop []
         (when-let [driver (startup config)]
           (when-not (run-fn driver)
+            (Thread/sleep 3000)
             (recur)))))))
 
