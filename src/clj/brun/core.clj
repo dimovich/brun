@@ -65,11 +65,11 @@
           ((rand-nth [page-down page-down page-up]) driver))
     
         (when (pos? aprct)
-          (info "liking [" (inc @total-liked) "/" (:max-likes config) "]")
           (when-let [badge (et/query driver sr/gallery-item-appreciate)]
             (when (empty? (et/get-element-text-el driver badge))
               (random-sleep driver)
               (get-to driver badge)
+              (info "liking [" (inc @total-liked) "/" (:max-likes config) "]")
               (et/click-el driver badge))))
 
         (random-sleep driver)
