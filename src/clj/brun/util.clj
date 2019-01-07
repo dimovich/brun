@@ -80,7 +80,7 @@
                        (< ely 0) [page-up]
                        (< ely (* 0.2 height)) [arrow-up]
                        (> ely height) [page-down]
-                       (> ely (* 0.6 height)) [arrow-down])]
+                       (> ely (* 0.8 height)) [arrow-down])]
           
             (let [action (rand-nth actions)]
               (debug action)
