@@ -90,7 +90,8 @@
   (try
     (et/js-execute
      driver
-     "document.getElementsByClassName('rf-search-bar__input')[0].blur();")
+     (str "var el=document.getElementsByClassName('rf-search-bar__input')[0];"
+          "if(el){ el.remove();}"))
     (catch Exception e nil)))
 
 

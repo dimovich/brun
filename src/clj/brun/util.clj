@@ -15,6 +15,8 @@
   (info "cleaning up...")
   (try
     (et/quit driver)
+    ;; sometimes quit won't close
+    (et/close-window driver)
     (catch Exception e)))
 
 

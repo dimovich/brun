@@ -3,6 +3,8 @@
 
 (def index-hamburger {:css "a.js-hamburger-button.js-hamburger-button-basement.rf-primary-nav__hamburger-button"})
 (def index-hamburger-signin {:css "a.form-button.js-rf-button.rf-button.rf-button--secondary.js-adobeid-signin"})
+
+(def search-bar {:css "input.rf-search-bar__input"})
 (def signin-user {:css "input#adobeid_username"})
 (def signin-pass {:css "input#adobeid_password"})
 (def signin-button {:css "button#sign_in"})
