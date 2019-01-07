@@ -24,27 +24,29 @@
 (defn random-sleep
   ([driver] (random-sleep driver [1 2]))
   ([driver [t1 t2]]
-   (et/wait driver (+ t1 (inc (rand-int (- t2 t1)))))))
+   (Thread/sleep (* 1000 (+ t1 (inc (rand-int (- t2 t1))))))
+   ;;(et/wait driver (+ t1 (inc (rand-int (- t2 t1)))))
+   ))
 
 
 (defn page-down [driver]
-  (doto driver
-    (et/fill {:tag :body} ek/pagedown)))
+  (et/scroll-down driver 400)
+  #_(et/fill driver {:tag :body} ek/pagedown))
 
 
 (defn page-up [driver]
-  (doto driver
-    (et/fill {:tag :body} ek/pageup)))
+  (et/scroll-up driver 400)
+  #_(et/fill driver {:tag :body} ek/pageup))
 
 
 (defn arrow-down [driver]
-  (doto driver
-    (et/fill {:tag :body} ek/arrow-down)))
+  (et/scroll-down driver 40)
+  #_(et/fill driver {:tag :body} ek/arrow-down))
 
 
 (defn arrow-up [driver]
-  (doto driver
-    (et/fill {:tag :body} ek/arrow-up)))
+  (et/scroll-up driver 40)
+  #_(et/fill driver {:tag :body} ek/arrow-up))
 
 
 (defn f5 [driver]
@@ -79,11 +81,11 @@
             [actions (cond
                        (< ely 0) [page-up]
                        (< ely (* 0.2 height)) [arrow-up]
-                       (> ely height) [page-down]
-                       (> ely (* 0.8 height)) [arrow-down])]
+                       (> ely (* 0.8 height)) [page-down]
+                       (> ely (* 0.5 height)) [arrow-down])]
           
             (let [action (rand-nth actions)]
-              (debug action)
+              (debug action ely height)
               (action driver)
               (random-sleep driver)
               (recur)))))))

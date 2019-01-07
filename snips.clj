@@ -51,3 +51,17 @@
 
 
 (et/quit ff)
+
+
+
+
+
+(defn blur-search-bar
+  "Bypass search bar focus."
+  [driver]
+  (try
+    (et/js-execute
+     driver
+     (str "var el=document.getElementsByClassName('rf-search-bar__input')[0];"
+          "if(el){ el.remove();}"))
+    (catch Exception e nil)))

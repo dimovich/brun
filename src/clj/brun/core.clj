@@ -8,14 +8,15 @@
 
 (def config-file "config.edn")
 (def total-liked (atom 0))
+(def seen-links (atom #{}))
 
 (timbre/set-config!
  {:level :info
-  :output-fn (fn [{:keys [timestamp_ level msg_]}]
-               (str
-                (second (clojure.string/split (force timestamp_) #" ")) " "
-                ;;(clojure.string/upper-case (name level)) " "
-                (force msg_)))
+  :output-fn
+  (fn [{:keys [timestamp_ level msg_]}]
+    (str
+     (second (clojure.string/split (force timestamp_) #" ")) " "
+     (force msg_)))
   :appenders {:println (timbre/println-appender {:stream :auto})}})
 
 
@@ -50,47 +51,28 @@
 
 
 (defn like-item [item {:as opts :keys [driver config]}]
-  (let [aprct 1 #_(rand-nth [1 0])
-        el-text (et/get-element-text-el driver item)]
-
-    (get-to driver item)
-    (et/click-el driver item)
+  (let [aprct 1 #_(rand-nth [1 0])]
+    (try
+      (doto driver
+        (get-to item)
+        (et/click-el item)
+        (random-sleep [2 3])
+        (et/wait-visible sr/gallery-item-appreciate))
     
-    (if (et/exists? driver sr/gallery-item-appreciate)
-      (do
-        (et/wait-visible driver sr/gallery-item-appreciate)
+      (when (pos? aprct)
+        (when-let [badge (et/query driver sr/gallery-item-appreciate)]
+          (when (empty? (et/get-element-text-el driver badge))
+            (random-sleep driver)
+            (get-to driver badge)
+            (info "liking [" (inc @total-liked) "/" (:max-likes config) "]")
+            (et/click-el driver badge)
+            aprct)))
+
+      (catch Exception e)
       
-        (dotimes [_ (rand-int 3)]
-          (random-sleep driver)
-          ((rand-nth [page-down page-down page-up]) driver))
-    
-        (when (pos? aprct)
-          (when-let [badge (et/query driver sr/gallery-item-appreciate)]
-            (when (empty? (et/get-element-text-el driver badge))
-              (random-sleep driver)
-              (get-to driver badge)
-              (info "liking [" (inc @total-liked) "/" (:max-likes config) "]")
-              (et/click-el driver badge))))
-
+      (finally
         (random-sleep driver)
-        (et/back driver)
-        aprct)
-      (do
-        (random-sleep driver)
-        (et/back driver)
-        0))))
-
-
-
-(defn blur-search-bar
-  "Bypass search bar focus."
-  [driver]
-  (try
-    (et/js-execute
-     driver
-     (str "var el=document.getElementsByClassName('rf-search-bar__input')[0];"
-          "if(el){ el.remove();}"))
-    (catch Exception e nil)))
+        (et/back driver)))))
 
 
 
@@ -101,26 +83,23 @@
   (info "exploring items...")
   (loop []
     (when (< @total-liked (:max-likes config))
-
       (random-sleep driver)
-      (blur-search-bar driver)
-      
-      (when (throw-coin)
-        (do (info "zavison...")
-            (random-sleep driver [5 10])))
       
       (info "looking around...")
-      (dotimes [_ (inc (rand-int 7))]
-        (blur-search-bar driver)
-        (random-sleep driver)
-        ((rand-nth [page-down page-down page-down page-up
-                    arrow-down arrow-up f5 random-thought])
-         driver))
+      (dotimes [_ (inc (rand-int 5))]
+        (doto driver
+          ((rand-nth [page-down page-down page-down
+                      page-down page-down page-down
+                      f5 random-thought]))
+          (random-sleep)))
 
-      (blur-search-bar driver)
-      
-      (let [item (rand-nth (et/query-all driver sr/gallery-item-link))]
-        (swap! total-liked + (like-item item opts))
+      (let [items (remove @seen-links
+                          (et/query-all
+                           driver sr/gallery-item-link))]
+        (when-not (empty? items)
+          (let [item (rand-nth items)]
+            (swap! total-liked + (like-item item opts))
+            (swap! seen-links conj item)))
         (recur)))))
 
 
@@ -148,4 +127,3 @@
         (when (< @total-liked (:max-likes config))
           (Thread/sleep 5000)
           (recur))))))
-
