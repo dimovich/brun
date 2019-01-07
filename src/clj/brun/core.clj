@@ -60,8 +60,6 @@
       (do
         (et/wait-visible driver sr/gallery-item-appreciate)
       
-        (info "exploring item" (str "[" el-text "]"))
-      
         (dotimes [_ (rand-int 3)]
           (random-sleep driver)
           ((rand-nth [page-down page-down page-up]) driver))
@@ -148,6 +146,6 @@
         (run {:driver driver :config config})
         (cleanup driver)
         (when (< @total-liked (:max-likes config))
-          (Thread/sleep 3000)
+          (Thread/sleep 5000)
           (recur))))))
 
