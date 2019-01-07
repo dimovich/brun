@@ -1,6 +1,6 @@
 {:paths ["src/clj"]
  
- :deps {org.clojure/clojure {:mvn/version "1.10.0-RC3"}
+ :deps {org.clojure/clojure {:mvn/version "1.10.0"}
         com.taoensso/timbre {:mvn/version "4.10.0"}
         etaoin {:mvn/version "0.2.9"}}
 
