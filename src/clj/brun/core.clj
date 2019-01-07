@@ -7,6 +7,7 @@
 
 
 (def config-file "config.edn")
+(def total-liked (atom 0))
 
 (timbre/set-config!
  {:level :info
@@ -19,7 +20,7 @@
 
 
 
-(defn login [driver config]
+(defn login [{:as opts :keys [driver config]}]
   (info "signing in...")
   (doto driver
     (et/go (:login-url config))
@@ -48,34 +49,38 @@
 
 
 
-(defn like-item [driver item]
+(defn like-item [item {:as opts :keys [driver config]}]
   (let [aprct 1 #_(rand-nth [1 0])
         el-text (et/get-element-text-el driver item)]
 
     (get-to driver item)
     (et/click-el driver item)
     
-    (when (et/exists? driver sr/gallery-item-appreciate)
+    (if (et/exists? driver sr/gallery-item-appreciate)
+      (do
+        (et/wait-visible driver sr/gallery-item-appreciate)
       
-      (et/wait-visible driver sr/gallery-item-appreciate)
+        (info "exploring item" (str "[" el-text "]"))
       
-      (info "exploring item" (str "[" el-text "]"))
-      
-      (dotimes [_ (rand-int 3)]
+        (dotimes [_ (rand-int 3)]
+          (random-sleep driver)
+          ((rand-nth [page-down page-down page-up]) driver))
+    
+        (when (pos? aprct)
+          (info "liking [" (inc @total-liked) "/" (:max-likes config) "]")
+          (when-let [badge (et/query driver sr/gallery-item-appreciate)]
+            (when (empty? (et/get-element-text-el driver badge))
+              (random-sleep driver)
+              (get-to driver badge)
+              (et/click-el driver badge))))
+
         (random-sleep driver)
-        ((rand-nth [page-down page-down page-up]) driver))
-    
-      (when (pos? aprct)
-        (info "appreciating...")
-        (when-let [badge (et/query driver sr/gallery-item-appreciate)]
-          (when (empty? (et/get-element-text-el driver badge))
-            (random-sleep driver)
-            (get-to driver badge)
-            (et/click-el driver badge)))))
-    
-    (random-sleep driver)
-    (et/back driver)
-    aprct))
+        (et/back driver)
+        aprct)
+      (do
+        (random-sleep driver)
+        (et/back driver)
+        0))))
 
 
 
@@ -90,13 +95,13 @@
 
 
 
-(defn explore-items [driver config]
+(defn explore-items [{:as opts :keys [driver config]}]
   (et/go driver (:like-url config))
   (et/wait-visible driver sr/gallery-content)
   
   (info "exploring items...")
-  (loop [total-liked 0]
-    (when (< total-liked (:max-likes config))
+  (loop []
+    (when (< @total-liked (:max-likes config))
 
       (random-sleep driver)
       (blur-search-bar driver)
@@ -116,8 +121,18 @@
       (blur-search-bar driver)
       
       (let [item (rand-nth (et/query-all driver sr/gallery-item-link))]
-        (recur (+ total-liked (like-item driver item)))))))
+        (swap! total-liked + (like-item item opts))
+        (recur)))))
 
+
+
+(defn run [{:as opts :keys [driver]}]
+  (let [tear-msg #(info "ERROR! You're Tearing me Apart!!")]
+    (try
+      (login opts)
+      (random-sleep driver)
+      (explore-items opts)
+      (catch Exception e (tear-msg)))))
 
 
 
@@ -127,20 +142,11 @@
     (info "config:")
     (clojure.pprint/pprint config)
     
-    (let [tear-msg #(info "ERROR! You're Tearing me Apart!!")
-          run-fn (fn [driver]
-                   (try
-                     (doto driver
-                       (login config)
-                       (random-sleep)
-                       (explore-items config))
-                     :success
-                     (catch Exception e (tear-msg))
-                     (finally (cleanup driver))))]
-
-      (loop []
-        (when-let [driver (startup config)]
-          (when-not (run-fn driver)
-            (Thread/sleep 3000)
-            (recur)))))))
+    (loop []
+      (when-let [driver (startup config)]
+        (run {:driver driver :config config})
+        (cleanup driver)
+        (when (< @total-liked (:max-likes config))
+          (Thread/sleep 3000)
+          (recur))))))
 
