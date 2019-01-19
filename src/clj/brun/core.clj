@@ -31,21 +31,26 @@
     (random-sleep [5 10])
     (et/click-visible sr/index-hamburger)
 
-    (random-sleep [5 10])
-    (et/click-visible sr/index-hamburger-signin)
+    (random-sleep [5 10]))
+  
 
-    (et/wait-visible sr/signin-user)
-    (et/click sr/signin-user)
-    (random-sleep)
-    (et/fill-human sr/signin-user (:user config))
+  ;; check if already logged in
+  (when (empty? (et/query-all driver sr/logged-in))
+    (doto driver
+      (et/click-visible sr/index-hamburger-signin)
 
-    (et/wait-visible sr/signin-pass)
-    (et/click sr/signin-pass)
-    (random-sleep)
-    (et/fill-human sr/signin-pass (:pass config))
+      (et/wait-visible sr/signin-user)
+      (et/click sr/signin-user)
+      (random-sleep)
+      (et/fill-human sr/signin-user (:user config))
 
-    (et/wait-visible sr/signin-button)
-    (et/click sr/signin-button)))
+      (et/wait-visible sr/signin-pass)
+      (et/click sr/signin-pass)
+      (random-sleep)
+      (et/fill-human sr/signin-pass (:pass config))
+
+      (et/wait-visible sr/signin-button)
+      (et/click sr/signin-button))))
 
 
 
@@ -57,18 +62,19 @@
         (get-to item)
         (et/click-el item)
         (random-sleep [2 3])
-        (et/wait-visible sr/gallery-item-appreciate))
-    
+        (et/wait-exists sr/like-button))
+
       (when (pos? aprct)
-        (when-let [badge (et/query driver sr/gallery-item-appreciate)]
-          (when (empty? (et/get-element-text-el driver badge))
+        (when-let [like-button (first (et/query-all driver sr/like-button))]
+          ;; check if we didn't like already
+          (when (empty? (et/get-element-text-el driver like-button))
             (random-sleep driver)
-            (get-to driver badge)
+            (get-to driver like-button)
             (info "liking [" (inc @total-liked) "/" (:max-likes config) "]")
-            (et/click-el driver badge)
+            (et/click-el driver like-button)
             aprct)))
 
-      (catch Exception e)
+      (catch Exception e (info "something's fishy here..."))
       
       (finally
         (random-sleep driver)
@@ -98,7 +104,8 @@
                            driver sr/gallery-item-link))]
         (when-not (empty? items)
           (let [item (rand-nth items)]
-            (swap! total-liked + (like-item item opts))
+            (some->> (like-item item opts)
+                     (swap! total-liked +))
             (swap! seen-links conj item)))
         (recur)))))
 
@@ -115,15 +122,18 @@
 
 
 (defn -main [& args]
-  (let [config (merge {:max-likes 10}
-                      (edn/read-string (slurp config-file)))]
-    (info "config:")
-    (clojure.pprint/pprint config)
+  (if-let [config (merge {:max-likes 10}
+                         (edn/read-string (slurp config-file)))]
+    (do
+      (info "config:")
+      (clojure.pprint/pprint config)
     
-    (loop []
-      (when-let [driver (startup config)]
-        (run {:driver driver :config config})
-        (cleanup driver)
-        (when (< @total-liked (:max-likes config))
-          (Thread/sleep 5000)
-          (recur))))))
+      (loop []
+        (when-let [driver (startup config)]
+          (run {:driver driver :config config})
+          (cleanup driver)
+          (when (< @total-liked (:max-likes config))
+            (Thread/sleep 5000)
+            (recur)))))
+
+    (info "Error! Could not find config.edn")))

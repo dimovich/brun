@@ -65,3 +65,74 @@
      (str "var el=document.getElementsByClassName('rf-search-bar__input')[0];"
           "if(el){ el.remove();}"))
     (catch Exception e nil)))
+
+
+
+
+
+
+
+
+
+(require 'brun.core)
+(in-ns 'brun.core)
+
+(def config (merge {:max-likes 10}
+                   (edn/read-string (slurp config-file))))
+
+(def driver (startup config))
+
+(def opts {:driver driver
+           :config config})
+
+(login opts)
+
+
+(et/go (:driver opts) (:like-url config))
+
+(def items (remove @seen-links
+                   (et/query-all
+                    (:driver opts) sr/gallery-item-link)))
+
+(def driver (:driver opts))
+
+(get-to driver (second items))
+
+(et/click-el driver (second items))
+
+(et/wait-visible driver author)
+
+(empty? (et/query-all driver author))
+
+(like-item (first (et/query-all
+                   (:driver opts) sr/gallery-item-link)) opts)
+
+
+(def images {:css "div.project-module-image"})
+;; get to
+(def author {:css "div.project-module-text"})
+
+
+;; click
+(def like-button {:css "#primary-project-content div.js-appreciate"})
+
+(def thanks {:css "div.thanks"})
+
+(get-to driver (et/query driver like-button))
+
+(et/click-el driver (et/query driver like-button))
+
+(et/query-all driver author)
+(et/query-all driver like-button)
+
+(et/visible? driver thanks)
+(et/query-all driver thanks)
+
+(et/query-all driver sr/index-hamburger-signin)
+(def logged-in {:css "[alt=Me]"})
+(et/query-all driver {:css "[alt=Me]"})
+
+
+
+(-main)
+
