@@ -122,8 +122,8 @@
 
 
 (defn -main [& args]
-  (if-let [config (merge {:max-likes 10}
-                         (edn/read-string (slurp config-file)))]
+  (if-let [config (some->> (when-read-edn [edn config-file] edn)
+                           (merge {:max-likes 10}))]
     (do
       (info "config:")
       (clojure.pprint/pprint config)
@@ -135,5 +135,5 @@
           (when (< @total-liked (:max-likes config))
             (Thread/sleep 5000)
             (recur)))))
-
-    (info "Error! Could not find config.edn")))
+    
+    (info "Error! Could not read config.edn")))

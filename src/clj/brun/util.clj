@@ -1,8 +1,10 @@
 (ns brun.util
   (:require [clojure.string :as string]
+            [clojure.java.io :as io]
             [etaoin.api :as et]
             [etaoin.keys :as ek]
-            [taoensso.timbre :as timbre :refer [info debug]]))
+            [taoensso.timbre :as timbre :refer [info debug]])
+  (:import [java.io PushbackReader]))
 
 
 
@@ -106,3 +108,17 @@
 
 (defn throw-coin []
   (rand-nth [true false]))
+
+
+
+(defn get-path [path]
+  (or (io/resource path) path))
+
+
+(defmacro when-read-edn [[name path] & body]
+  `(let [file# (io/file (get-path ~path))]
+     (when (.exists file#)
+       (with-open [rdr# (java.io.PushbackReader.
+                         (clojure.java.io/reader file#))]
+         (when-let [~name (clojure.edn/read rdr#)]
+           ~@body)))))
